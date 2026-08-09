@@ -41,7 +41,7 @@ export function formatRentangTanggal(mulai: string, selesai: string | null): str
   return `${formatTanggal(mulai)} – ${formatTanggal(selesai)}`;
 }
 
-function getWeekStart(tanggal: string): string {
+export function getWeekStart(tanggal: string): string {
   const date = new Date(`${tanggal}T00:00:00`);
   const dayOfWeek = date.getDay();
   const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
@@ -49,28 +49,33 @@ function getWeekStart(tanggal: string): string {
   return date.toISOString().slice(0, 10);
 }
 
-function getWeekEnd(weekStartIso: string): string {
-  const date = new Date(`${weekStartIso}T00:00:00`);
-  date.setDate(date.getDate() + 6);
+function addDays(tanggal: string, days: number): string {
+  const date = new Date(`${tanggal}T00:00:00`);
+  date.setDate(date.getDate() + days);
   return date.toISOString().slice(0, 10);
 }
 
-export function groupByWeek<T>(
-  items: T[],
-  getTanggalMulai: (item: T) => string,
-): { weekStart: string; weekEnd: string; items: T[] }[] {
-  const map = new Map<string, T[]>();
-  for (const item of items) {
-    const weekStart = getWeekStart(getTanggalMulai(item));
-    if (!map.has(weekStart)) map.set(weekStart, []);
-    map.get(weekStart)!.push(item);
-  }
+export type GanttWeek = { weekStart: string; weekEnd: string };
 
-  return Array.from(map.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([weekStart, weekItems]) => ({
-      weekStart,
-      weekEnd: getWeekEnd(weekStart),
-      items: weekItems,
-    }));
+/**
+ * Kolom minggu untuk Gantt chart: dari minggu (Senin) milestone yang paling
+ * awal mulai, sampai minggu milestone yang paling akhir selesai. Kalau ada
+ * milestone yang rentangnya bertumpuk, kolomnya tetap satu deret lurus
+ * (bukan per-milestone) supaya semua baris berbagi sumbu waktu yang sama.
+ */
+export function buildGanttWeeks(
+  milestones: { tanggal_mulai: string; tanggal_selesai: string | null }[],
+): GanttWeek[] {
+  if (milestones.length === 0) return [];
+
+  const startWeeks = milestones.map((m) => getWeekStart(m.tanggal_mulai));
+  const endWeeks = milestones.map((m) => getWeekStart(m.tanggal_selesai ?? m.tanggal_mulai));
+  const earliest = startWeeks.reduce((a, b) => (a < b ? a : b));
+  const latest = endWeeks.reduce((a, b) => (a > b ? a : b));
+
+  const weeks: GanttWeek[] = [];
+  for (let cursor = earliest; cursor <= latest; cursor = addDays(cursor, 7)) {
+    weeks.push({ weekStart: cursor, weekEnd: addDays(cursor, 6) });
+  }
+  return weeks;
 }

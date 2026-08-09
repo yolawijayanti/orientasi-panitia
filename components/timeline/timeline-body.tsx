@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { MilestoneRow } from "@/components/timeline/milestone-row";
-import { formatTanggal, groupByWeek } from "@/lib/timeline/format";
+import { TimelineGantt } from "@/components/timeline/timeline-gantt";
 import type { Milestone } from "@/components/timeline/timeline-section";
 
 type MilestoneWithActions = {
@@ -67,27 +67,10 @@ export function TimelineBody({
           ))}
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          {groupByWeek(items, (item) => item.milestone.tanggal_mulai).map((group, groupIndex) => (
-            <div key={group.weekStart} className="flex flex-col gap-2">
-              <p className="text-sm font-semibold text-muted-foreground">
-                Minggu {groupIndex + 1} · {formatTanggal(group.weekStart)} –{" "}
-                {formatTanggal(group.weekEnd)}
-              </p>
-              <div className="flex flex-col gap-2 border-l pl-4">
-                {group.items.map(({ milestone, updateAction, deleteAction }) => (
-                  <MilestoneRow
-                    key={milestone.id}
-                    milestone={milestone}
-                    todayIso={todayIso}
-                    updateAction={updateAction}
-                    deleteAction={deleteAction}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <TimelineGantt
+          milestones={items.map((item) => item.milestone)}
+          todayIso={todayIso}
+        />
       )}
     </div>
   );
