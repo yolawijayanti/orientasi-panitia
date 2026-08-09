@@ -1,3 +1,6 @@
+import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/logout-button";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,8 +17,11 @@ export default async function PanitiaDashboardPage() {
         </div>
         <LogoutButton />
       </div>
+      <Button asChild className="w-fit">
+        <Link href="/panitia/susunan">Susunan Panitia</Link>
+      </Button>
       <p className="text-muted-foreground">
-        Susunan panitia, timeline, dan bucket tugas akan diimplementasikan mulai Fase 2.
+        Timeline dan bucket tugas akan diimplementasikan mulai Fase 3.
       </p>
     </main>
   );

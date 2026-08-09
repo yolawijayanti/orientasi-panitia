@@ -119,7 +119,7 @@ Jangan tambahkan tabel/kolom untuk: notulensi meeting, game path journey, leader
 
 - [x] Fase 0 — Setup Project (kode & struktur selesai; project Supabase sudah dibuat, `.env.local` terisi kredensial asli, `next build`/`next dev` sukses tanpa error dan sudah diverifikasi jalan lokal)
 - [x] Fase 1 — Auth & Skema Data (migration SQL sudah dijalankan ke Supabase asli, RLS sudah diuji manual dan terbukti panitia A tidak bisa lihat data instance B, login lewat `npm run dev` sudah dicoba dan redirect sesuai role sukses untuk akun panitia maupun leader — diverifikasi langsung oleh Yolanda)
-- [ ] Fase 2 — Manajemen Kepanitiaan & Susunan Panitia
+- [x] Fase 2 — Manajemen Kepanitiaan & Susunan Panitia (kode & migration selesai; verifikasi hanya lewat `next build`/`next lint`/typecheck di sandbox — migration SQL, trigger auto-seed bucket, RPC, dan RLS `committee_members` BELUM dijalankan/diuji live oleh Yolanda, lihat langkah manual di `supabase/verify_fase2.sql`)
 - [ ] Fase 3 — Timeline Pelaksanaan
 - [ ] Fase 4 — Bucket Tugas & Breakdown
 - [ ] Fase 5 — Download/Submit Template Budgeting
@@ -127,7 +127,7 @@ Jangan tambahkan tabel/kolom untuk: notulensi meeting, game path journey, leader
 - [ ] Fase 7 — Notifikasi
 - [ ] Fase 8 — Polish Desain
 
-**Fase berikutnya yang harus dikerjakan: Fase 2**
+**Fase berikutnya yang harus dikerjakan: Fase 3**
 
 ## 9. Catatan Teknis per Fase
 
@@ -179,3 +179,27 @@ Data test (`*@test.local`) sudah dibersihkan Yolanda dari database setelah verif
 **shadcn/ui component baru**: `input.tsx`, `label.tsx` (butuh `@radix-ui/react-label`, sudah ditambahkan ke `package.json`), `card.tsx` — dibuat manual dengan pola yang sama seperti `button.tsx` di Fase 0 (network ke `ui.shadcn.com` masih diblokir, sudah dicoba `npx shadcn@latest add` dan gagal dengan error yang sama seperti di Fase 0).
 
 **`app/page.tsx`**: konten boilerplate `create-next-app` diganti jadi `redirect("/login")` polos — karena `proxy.ts` sudah selalu redirect `/` ke `/login` atau dashboard sesuai role duluan, halaman ini praktis cuma fallback kalau proxy ter-skip (harusnya tidak pernah kejadian secara normal).
+
+### Fase 2 — Manajemen Kepanitiaan & Susunan Panitia
+
+**`npm install` dijalankan di sandbox** (baru pertama kali — `node_modules` belum pernah ada sebelumnya di sessions Fase 0/1). Ternyata registry npm memang tidak diblokir (sesuai catatan Fase 0/1: yang diblokir cuma domain di luar allowlist seperti `*.supabase.co` dan `ui.shadcn.com`), jadi dependency ter-install normal dan `next build`/`next lint`/`tsc --noEmit` bisa dijalankan sungguhan di sandbox ini (bukan cuma dibaca kodenya). `.env.local` diisi nilai placeholder sementara hanya untuk keperluan `next build` di sandbox (supaya module `lib/supabase/*` tidak crash saat baca `process.env`), lalu dihapus lagi sebelum commit — **tidak pernah** commit ke git (tetap terlindungi `.gitignore` pola `.env*`). Koneksi nyata ke Supabase tetap tidak bisa dites dari sandbox ini (belum dicoba ulang, tapi tidak ada indikasi allowlist `*.supabase.co` berubah), jadi migration & RLS baru tetap perlu dijalankan manual oleh Yolanda seperti Fase 1.
+
+**Migration baru**: `supabase/migrations/20260809000002_fase2_kepanitiaan_dan_seed_bucket.sql` (dijalankan setelah migration Fase 1). Isinya dua bagian:
+1. Fungsi `public.seed_default_buckets()` + trigger `trg_seed_default_buckets` (`after insert on kepanitiaan_site`) yang otomatis insert 6 baris `buckets` (nama & `is_budgeting` sesuai section 5 HANDOVER.md) setiap kali instance `kepanitiaan_site` baru dibuat. Sengaja **bukan** `security definer` — trigger jalan dengan privilege pemanggil (leader), dan policy `buckets_scoped` Fase 1 sudah mengizinkan leader insert lewat `is_leader()`, jadi tidak perlu bypass RLS.
+2. Fungsi RPC `public.create_kepanitiaan_dengan_sites(p_nama text, p_nama_sites text[])`: insert 1 baris `kepanitiaan`, lalu untuk setiap nama site di array — find-or-create ke tabel `sites` by `nama_site` (karena tabel `sites` belum punya halaman CRUD terpisah, lihat poin di bawah), lalu insert `kepanitiaan_site` (`on conflict do nothing` untuk idempotensi). Juga **bukan** `security definer`, jadi RLS (`kepanitiaan_write_leader`, `sites_write_leader`, `kepanitiaan_site_write_leader`) tetap berlaku otomatis berdasarkan role pemanggil — panggilan dari akun panitia akan gagal dengan error RLS, bukan lewat pengecekan manual di kode. Ditambahkan `grant execute ... to authenticated` supaya bisa dipanggil lewat `supabase.rpc()` dari sisi aplikasi.
+
+**Keputusan: tidak ada halaman CRUD terpisah untuk tabel `sites`.** HANDOVER.md section 5-6 tidak menugaskan pengelolaan `sites` ke fase manapun secara eksplisit, tapi form "Buat Kepanitiaan Baru" butuh sumber data site. Solusi minimal yang dipilih: form punya checkbox untuk site yang sudah ada (query `select * from sites`) **dan** input teks "tambah site baru" (dipisah koma/baris baru) yang di-find-or-create otomatis lewat RPC di atas. Ini bukan fitur baru di luar scope — cuma cara mengisi tabel `sites` yang sudah ada di model data Fase 1 — tapi dicatat di sini supaya jelas kalau nanti section 5/6 diperluas dengan halaman manajemen site sendiri, keputusan ini harus direvisit.
+
+**Struktur route baru**:
+- `/leader/kepanitiaan` — daftar kepanitiaan (dikelompokkan per nama), tiap kepanitiaan menampilkan tombol per instance site-nya. Tombol "+ Buat Kepanitiaan Baru".
+- `/leader/kepanitiaan/baru` — form buat kepanitiaan (client component `create-kepanitiaan-form.tsx` pakai `useActionState`, mengikuti pola `login-form.tsx` Fase 1).
+- `/leader/kepanitiaan/[instanceId]` — detail satu instance `kepanitiaan_site`: daftar bucket (read-only, cuma untuk membuktikan auto-seed jalan — CRUD tugas per bucket itu scope Fase 4) + CRUD susunan panitia.
+- `/panitia/susunan` — halaman susunan panitia milik akun panitia sendiri, `kepanitiaan_site_id` di-resolve dari `public.users` di server (bukan dari input), supaya panitia tidak bisa lihat/edit instance lain (RLS `committee_members_scoped` juga menahan ini sebagai lapis kedua).
+
+Kedua halaman susunan panitia (leader & panitia) memakai komponen bersama `components/committee/committee-members-section.tsx` (Server Component, bukan client) — tiap baris anggota adalah `<form>` sendiri (bukan toggle edit-mode) yang langsung menampilkan input ter-isi nilai sekarang + tombol "Simpan" dan `<form>` "Hapus" di sampingnya, jadi keseluruhan CRUD **tidak butuh client-side JS sama sekali** kecuali form create-kepanitiaan (yang butuh `useActionState` untuk pesan error).
+
+**Server actions**: `lib/kepanitiaan/actions.ts` (`createKepanitiaan`, panggil RPC di atas) dan `lib/committee/actions.ts` (`addCommitteeMember`/`updateCommitteeMember`/`deleteCommitteeMember`). Argumen seperti `kepanitiaanSiteId`/`memberId`/`redirectTo` di-pass lewat `.bind(null, ...)` dari Server Component (bukan hidden input) — sesuai `node_modules/next/dist/docs/01-app/02-guides/forms.md`, argumen yang di-bind ke Server Action terenkripsi di closure dan tidak bisa ditempel/diubah dari sisi client, jadi ini lebih aman daripada hidden input untuk kasus di mana panitia seharusnya tidak bisa mengubah `kepanitiaan_site_id` tujuan insert. Error ditampilkan lewat redirect ke `?error=...` di URL yang sama (dibaca lewat `searchParams`), bukan `useActionState`, karena form-form ini Server Component murni.
+
+**Role anggota panitia** (`committee_members.role`) dipilih lewat elemen `<select>` HTML biasa (bergaya mengikuti `input.tsx`), bukan komponen shadcn `Select` — cuma 2 pilihan tetap (`anggota`/`leader_bidang`), jadi membuat komponen Radix Select baru (butuh dependency `@radix-ui/react-select` baru) dianggap berlebihan untuk kebutuhan ini. Kalau butuh dropdown custom-styled di fase lain, ikuti pola manual `label.tsx` untuk bikin `components/ui/select.tsx`.
+
+**Belum diverifikasi live** (perlu Yolanda jalankan manual, sama seperti Fase 1): migration `20260809000002_fase2_kepanitiaan_dan_seed_bucket.sql` belum pernah dieksekusi ke Supabase asli, trigger auto-seed bucket & RPC `create_kepanitiaan_dengan_sites` belum pernah dites hasil sungguhannya, dan RLS `committee_members_scoped` belum diuji ulang untuk flow tambah/edit/hapus anggota (Fase 1 hanya menguji `buckets`). Langkah manual lengkap ada di `supabase/verify_fase2.sql`, termasuk skenario "leader bikin FIND dengan 3 site" yang jadi kriteria selesai Fase 2 di section 6.
