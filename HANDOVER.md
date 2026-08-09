@@ -117,7 +117,7 @@ Jangan tambahkan tabel/kolom untuk: notulensi meeting, game path journey, leader
 
 > Update bagian ini setiap kali sebuah fase selesai dikerjakan, supaya session berikutnya tahu harus mulai dari mana.
 
-- [x] Fase 0 — Setup Project (kode & struktur selesai; `next build`/`next dev` sukses tanpa error. **Catatan:** project Supabase belum dibuat — isi `NEXT_PUBLIC_SUPABASE_URL` & `NEXT_PUBLIC_SUPABASE_ANON_KEY` di `.env.local` dari project Supabase asli lalu verifikasi koneksi sebelum lanjut ke Fase 1 yang butuh koneksi database nyata)
+- [x] Fase 0 — Setup Project (kode & struktur selesai; project Supabase sudah dibuat, `.env.local` terisi kredensial asli, `next build`/`next dev` sukses tanpa error dan sudah diverifikasi jalan lokal)
 - [ ] Fase 1 — Auth & Skema Data
 - [ ] Fase 2 — Manajemen Kepanitiaan & Susunan Panitia
 - [ ] Fase 3 — Timeline Pelaksanaan
@@ -127,4 +127,4 @@ Jangan tambahkan tabel/kolom untuk: notulensi meeting, game path journey, leader
 - [ ] Fase 7 — Notifikasi
 - [ ] Fase 8 — Polish Desain
 
-**Fase berikutnya yang harus dikerjakan: Fase 1 (setelah project Supabase dibuat dan env keys diisi)**
+**Fase berikutnya yang harus dikerjakan: Fase 1**
