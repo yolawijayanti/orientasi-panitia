@@ -41,18 +41,33 @@ export function formatRentangTanggal(mulai: string, selesai: string | null): str
   return `${formatTanggal(mulai)} – ${formatTanggal(selesai)}`;
 }
 
+/**
+ * Serialisasi Date -> "yyyy-mm-dd" pakai getter tanggal lokal (getFullYear/
+ * getMonth/getDate), BUKAN toISOString() (yang konversi ke UTC dulu).
+ * toISOString() menggeser tanggal mundur 1 hari untuk timezone di depan UTC
+ * (WIB/WITA/WIT semua begitu) -- dan karena getWeekStart/addDays saling
+ * panggil berantai di buildGanttWeeks, error itu numpuk tiap iterasi (minggu
+ * ke-2 meleset 1 hari, minggu ke-3 meleset 2 hari, dst).
+ */
+function toLocalIso(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function getWeekStart(tanggal: string): string {
   const date = new Date(`${tanggal}T00:00:00`);
   const dayOfWeek = date.getDay();
   const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   date.setDate(date.getDate() - diffToMonday);
-  return date.toISOString().slice(0, 10);
+  return toLocalIso(date);
 }
 
 function addDays(tanggal: string, days: number): string {
   const date = new Date(`${tanggal}T00:00:00`);
   date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
+  return toLocalIso(date);
 }
 
 export type GanttWeek = { weekStart: string; weekEnd: string };
