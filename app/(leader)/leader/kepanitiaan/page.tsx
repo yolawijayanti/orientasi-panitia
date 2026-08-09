@@ -41,7 +41,7 @@ export default async function KepanitiaanListPage() {
         </div>
         <div className="flex gap-2">
           <Button asChild>
-            <Link href="/leader/kepanitiaan/baru">+ Buat Kepanitiaan Baru</Link>
+            <Link href="/leader/kepanitiaan/baru">+ Buat Kepanitiaan / Tambah Site</Link>
           </Button>
           <LogoutButton />
         </div>

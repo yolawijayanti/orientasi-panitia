@@ -21,6 +21,10 @@ export function CreateKepanitiaanForm({
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="nama">Nama Kepanitiaan</Label>
         <Input id="nama" name="nama" placeholder="Contoh: FIND" required />
+        <p className="text-xs text-muted-foreground">
+          Kalau nama ini sudah ada, site yang dipilih akan ditambahkan ke kepanitiaan tersebut
+          (data lamanya tetap aman).
+        </p>
       </div>
 
       <div className="flex flex-col gap-2">

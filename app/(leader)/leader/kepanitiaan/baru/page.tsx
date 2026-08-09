@@ -24,10 +24,11 @@ export default async function BuatKepanitiaanPage() {
       </div>
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Buat Kepanitiaan Baru</CardTitle>
+          <CardTitle>Buat Kepanitiaan / Tambah Site</CardTitle>
           <CardDescription>
             Pilih site yang menjalankan — instance dan 6 bucket default akan otomatis dibuat
-            untuk setiap site.
+            untuk setiap site. Form ini juga dipakai untuk menambah site baru ke kepanitiaan
+            yang sudah berjalan.
           </CardDescription>
         </CardHeader>
         <CardContent>

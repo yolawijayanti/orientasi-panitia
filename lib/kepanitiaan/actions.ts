@@ -42,11 +42,7 @@ export async function createKepanitiaan(
   });
 
   if (error) {
-    return {
-      error: error.message.toLowerCase().includes("duplicate")
-        ? "Nama kepanitiaan ini sudah dipakai."
-        : "Gagal membuat kepanitiaan. Coba lagi.",
-    };
+    return { error: "Gagal menyimpan kepanitiaan. Coba lagi." };
   }
 
   revalidatePath("/leader/kepanitiaan");
