@@ -118,7 +118,7 @@ Jangan tambahkan tabel/kolom untuk: notulensi meeting, game path journey, leader
 > Update bagian ini setiap kali sebuah fase selesai dikerjakan, supaya session berikutnya tahu harus mulai dari mana.
 
 - [x] Fase 0 — Setup Project (kode & struktur selesai; project Supabase sudah dibuat, `.env.local` terisi kredensial asli, `next build`/`next dev` sukses tanpa error dan sudah diverifikasi jalan lokal)
-- [ ] Fase 1 — Auth & Skema Data
+- [x] Fase 1 — Auth & Skema Data (kode & migration SQL selesai, `next build`/lint/typecheck sukses; migration SQL dan uji RLS **belum dijalankan** ke Supabase asli karena sandbox tidak ada akses network — lihat Catatan Teknis Fase 1 untuk langkah manual yang perlu Yolanda jalankan)
 - [ ] Fase 2 — Manajemen Kepanitiaan & Susunan Panitia
 - [ ] Fase 3 — Timeline Pelaksanaan
 - [ ] Fase 4 — Bucket Tugas & Breakdown
@@ -127,7 +127,7 @@ Jangan tambahkan tabel/kolom untuk: notulensi meeting, game path journey, leader
 - [ ] Fase 7 — Notifikasi
 - [ ] Fase 8 — Polish Desain
 
-**Fase berikutnya yang harus dikerjakan: Fase 1**
+**Fase berikutnya yang harus dikerjakan: Fase 2**
 
 ## 9. Catatan Teknis per Fase
 
@@ -149,3 +149,31 @@ Catatan: awalnya kedua route group `(panitia)` dan `(leader)` sama-sama punya ha
 **Kredensial Supabase**: project sudah dibuat di supabase.com (Project URL: `https://hdzhlltitaxzirapkuqo.supabase.co`, key pakai format baru `sb_publishable_...`). Nilainya **hanya** ada di `.env.local` milik Yolanda secara lokal (tidak pernah di-commit, dilindungi `.gitignore` pola `.env*`). Template kosongnya ada di `.env.local.example` (ini yang di-commit). **Setiap session/environment baru yang mengerjakan project ini harus minta Yolanda isi ulang `.env.local` secara manual** — tidak bisa diasumsikan sudah ada, karena tidak tersimpan di repo maupun di sandbox cloud (sandbox bersifat ephemeral, hilang begitu session berakhir).
 
 **Kendala network sandbox**: sandbox Claude Code on the web yang dipakai untuk Fase 0 memblokir koneksi HTTPS ke domain di luar allowlist (npm, GitHub, dst) — termasuk `*.supabase.co` dan `ui.shadcn.com`. Karena itu, verifikasi live koneksi ke Supabase **dilakukan manual oleh Yolanda di laptopnya sendiri** (clone branch, isi `.env.local`, `npm run dev`, cek tidak ada error) — bukan dari dalam sandbox. Kalau session berikutnya jalan di sandbox serupa dan butuh koneksi nyata ke Supabase (migration SQL di Fase 1, dst), kemungkinan besar akan kena kendala yang sama dan perlu strategi serupa: siapkan perintah/SQL-nya, minta Yolanda yang jalankan di sisi lokal atau lewat Supabase Dashboard (SQL Editor) langsung.
+
+### Fase 1 — Auth & Skema Data
+
+**Kendala network sama seperti Fase 0**: sandbox sesi ini (Claude Code remote execution environment) juga tidak punya akses ke `*.supabase.co` (dicoba `curl` ke project URL, hasilnya `403` dari proxy) maupun `ui.shadcn.com`. Jadi migration SQL, uji RLS, dan login sungguhan ke Supabase **belum diverifikasi live** — hanya diverifikasi lewat `npm run build`, `npm run lint`, typecheck, dan smoke test `next dev` (cek redirect proxy jalan, dan server action login tidak crash walau `signInWithPassword` gagal connect — dicek langsung: fetch gagal ke URL palsu tetap resolve sebagai `{error}`, tidak throw, jadi aman).
+
+**Yang perlu Yolanda jalankan manual di sisi asli:**
+1. Migration: `supabase/migrations/20260809000001_fase1_schema_and_rls.sql` — jalankan lewat Supabase Dashboard > SQL Editor (atau `supabase db push` kalau CLI sudah di-link).
+2. Uji RLS: ikuti langkah-langkah di `supabase/verify_rls_fase1.sql` (buat 2 akun panitia test di 2 instance berbeda + 1 akun leader, lalu bandingkan hasil query `select * from buckets` dari masing-masing akun).
+3. Isi `.env.local` seperti biasa, lalu `npm run dev`, coba login dengan salah satu akun test di atas, pastikan redirect ke `/panitia/dashboard` atau `/leader/dashboard` sesuai role.
+
+**`middleware.ts` → `proxy.ts`**: Next.js 16 men-deprecate file convention `middleware.js` dan menggantinya dengan `proxy.js` (fungsi dan nama file berubah, behavior sama — lihat `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md`). Karena itu redirect-berdasarkan-role dan refresh session Supabase ditaruh di **`proxy.ts`** di root project (bukan `middleware.ts`), dengan fungsi bernama `proxy` (bukan `middleware`). Logic session-refresh-nya sendiri ada di helper `lib/supabase/middleware.ts` (nama file helper ini sengaja dipertahankan, karena bukan file-convention Next.js — cuma modul biasa; kalau mau di-rename ke `lib/supabase/proxy.ts` boleh, tidak ada bedanya secara fungsional). `proxy.ts` meng-exclude `_next/static`, `_next/image`, `favicon.ico`, dan file gambar statis dari matcher-nya.
+
+**Auth flow**: pakai Next.js Server Actions (React 19 `useActionState`), bukan client-side `fetch` ke Supabase langsung — mengikuti pola resmi Supabase+Next.js App Router.
+- `lib/auth/actions.ts`: `login(prevState, formData)` — panggil `supabase.auth.signInWithPassword`, lalu query role dari `public.users`, lalu `redirect()` ke `/panitia/dashboard` atau `/leader/dashboard`. Kalau gagal (password salah / user belum ada di `public.users`), return `{ error: "..." }` (tidak melempar exception, supaya `useActionState` di client bisa nampilin pesan error). `logout()` — `supabase.auth.signOut()` lalu redirect ke `/login`.
+- `app/(auth)/login/login-form.tsx` (client component) memanggil `login` lewat `useActionState`, dan `app/(auth)/login/page.tsx` membungkusnya dengan `Card` dari shadcn/ui.
+- `components/logout-button.tsx`: form kecil yang langsung `action={logout}` (server action), dipakai di kedua dashboard placeholder biar mudah dites bolak-balik role tanpa buka tab incognito baru terus.
+
+**Role redirect di `proxy.ts`**: setiap request (kecuali asset statis) memanggil `supabase.auth.getUser()` (bukan `getSession()` — `getUser()` yang mem-verifikasi & refresh token server-side, sesuai rekomendasi Supabase). Kalau belum login dan akses `/panitia/*`, `/leader/*`, atau `/` → redirect ke `/login`. Kalau sudah login: akses `/login` atau `/` → redirect ke dashboard sesuai role; panitia yang coba akses `/leader/*` atau leader yang coba akses `/panitia/*` → di-redirect balik ke dashboard sendiri (bukan 403, biar UX-nya nggak nyangkut di halaman error).
+
+**Skema data & RLS** (`supabase/migrations/20260809000001_fase1_schema_and_rls.sql`):
+- Semua 10 tabel di section 5 dibuat sesuai model data, dengan tambahan `created_at` di tiap tabel dan check constraint untuk kolom status/role yang disebutkan eksplisit di handover (`users.role`, `committee_members.role`, `tasks.status`/`subtasks.status` pakai `belum`/`proses`/`selesai`, `budget_submissions.status` pakai `belum`/`lengkap` sesuai istilah di section Fase 5). `notifications_log.jenis` sengaja dibiarkan `text` bebas (belum di-constrain) karena daftar jenis notifikasi belum diputuskan final — itu keputusan Fase 7.
+- `public.users.id` adalah FK langsung ke `auth.users.id` (satu baris `public.users` = satu akun Supabase Auth). **Tidak ada trigger auto-insert dari `auth.users` ke `public.users`** — akun panitia/leader sengaja dibuat manual oleh leader (lewat Supabase Dashboard atau Fase 2 nanti), jadi `role` dan `kepanitiaan_site_id` selalu diisi sadar, bukan default kosong.
+- RLS pakai 3 helper function `security definer` (`current_user_role()`, `current_user_kepanitiaan_site_id()`, `is_leader()`) yang baca `public.users` tanpa kena RLS-nya sendiri — ini untuk menghindari infinite recursion kalau policy tabel `users` butuh cek role dari tabel `users` itu sendiri. Semua tabel operasional pakai pola `is_leader() OR kepanitiaan_site_id = current_user_kepanitiaan_site_id()`; untuk `tasks`/`subtasks` yang tidak punya `kepanitiaan_site_id` langsung, resolve lewat join ke `buckets` (dan `tasks` untuk `subtasks`).
+- Bucket seeding otomatis (6 bucket default saat `kepanitiaan_site` baru dibuat) **belum dibuat di migration ini** — itu memang scope Fase 2 ("Manajemen Kepanitiaan"), bukan Fase 1 ("Migration SQL + RLS" saja). Kalau di Fase 2 mau pakai DB trigger untuk auto-seed, tinggal tambah migration baru, jangan ubah file ini.
+
+**shadcn/ui component baru**: `input.tsx`, `label.tsx` (butuh `@radix-ui/react-label`, sudah ditambahkan ke `package.json`), `card.tsx` — dibuat manual dengan pola yang sama seperti `button.tsx` di Fase 0 (network ke `ui.shadcn.com` masih diblokir, sudah dicoba `npx shadcn@latest add` dan gagal dengan error yang sama seperti di Fase 0).
+
+**`app/page.tsx`**: konten boilerplate `create-next-app` diganti jadi `redirect("/login")` polos — karena `proxy.ts` sudah selalu redirect `/` ke `/login` atau dashboard sesuai role duluan, halaman ini praktis cuma fallback kalau proxy ter-skip (harusnya tidak pernah kejadian secara normal).
