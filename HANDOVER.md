@@ -118,7 +118,7 @@ Jangan tambahkan tabel/kolom untuk: notulensi meeting, game path journey, leader
 > Update bagian ini setiap kali sebuah fase selesai dikerjakan, supaya session berikutnya tahu harus mulai dari mana.
 
 - [x] Fase 0 — Setup Project (kode & struktur selesai; project Supabase sudah dibuat, `.env.local` terisi kredensial asli, `next build`/`next dev` sukses tanpa error dan sudah diverifikasi jalan lokal)
-- [x] Fase 1 — Auth & Skema Data (kode & migration SQL selesai, `next build`/lint/typecheck sukses; migration SQL dan uji RLS **belum dijalankan** ke Supabase asli karena sandbox tidak ada akses network — lihat Catatan Teknis Fase 1 untuk langkah manual yang perlu Yolanda jalankan)
+- [x] Fase 1 — Auth & Skema Data (migration SQL sudah dijalankan ke Supabase asli, RLS sudah diuji manual dan terbukti panitia A tidak bisa lihat data instance B, login lewat `npm run dev` sudah dicoba dan redirect sesuai role sukses untuk akun panitia maupun leader — diverifikasi langsung oleh Yolanda)
 - [ ] Fase 2 — Manajemen Kepanitiaan & Susunan Panitia
 - [ ] Fase 3 — Timeline Pelaksanaan
 - [ ] Fase 4 — Bucket Tugas & Breakdown
@@ -152,12 +152,14 @@ Catatan: awalnya kedua route group `(panitia)` dan `(leader)` sama-sama punya ha
 
 ### Fase 1 — Auth & Skema Data
 
-**Kendala network sama seperti Fase 0**: sandbox sesi ini (Claude Code remote execution environment) juga tidak punya akses ke `*.supabase.co` (dicoba `curl` ke project URL, hasilnya `403` dari proxy) maupun `ui.shadcn.com`. Jadi migration SQL, uji RLS, dan login sungguhan ke Supabase **belum diverifikasi live** — hanya diverifikasi lewat `npm run build`, `npm run lint`, typecheck, dan smoke test `next dev` (cek redirect proxy jalan, dan server action login tidak crash walau `signInWithPassword` gagal connect — dicek langsung: fetch gagal ke URL palsu tetap resolve sebagai `{error}`, tidak throw, jadi aman).
+**Kendala network sama seperti Fase 0**: sandbox sesi ini (Claude Code remote execution environment) juga tidak punya akses ke `*.supabase.co` (dicoba `curl` ke project URL, hasilnya `403` dari proxy) maupun `ui.shadcn.com`. Jadi dari dalam sandbox, migration SQL/uji RLS/login sungguhan hanya diverifikasi tidak-langsung lewat `npm run build`, `npm run lint`, typecheck, dan smoke test `next dev` (cek redirect proxy jalan, dan server action login tidak crash walau `signInWithPassword` gagal connect).
 
-**Yang perlu Yolanda jalankan manual di sisi asli:**
-1. Migration: `supabase/migrations/20260809000001_fase1_schema_and_rls.sql` — jalankan lewat Supabase Dashboard > SQL Editor (atau `supabase db push` kalau CLI sudah di-link).
-2. Uji RLS: ikuti langkah-langkah di `supabase/verify_rls_fase1.sql` (buat 2 akun panitia test di 2 instance berbeda + 1 akun leader, lalu bandingkan hasil query `select * from buckets` dari masing-masing akun).
-3. Isi `.env.local` seperti biasa, lalu `npm run dev`, coba login dengan salah satu akun test di atas, pastikan redirect ke `/panitia/dashboard` atau `/leader/dashboard` sesuai role.
+**Verifikasi live sudah dilakukan Yolanda di laptopnya sendiri (bukan dari sandbox), hasilnya sukses:**
+1. Migration `supabase/migrations/20260809000001_fase1_schema_and_rls.sql` sudah dijalankan lewat Supabase Dashboard > SQL Editor — 11 tabel + RLS policies sudah aktif di project asli.
+2. Uji RLS sudah dilakukan mengikuti `supabase/verify_rls_fase1.sql` (2 akun panitia test di 2 instance berbeda + 1 akun leader) — terbukti panitia A hanya lihat data instance A, panitia B hanya instance B, leader lihat semua.
+3. `.env.local` sudah diisi kredensial asli, `npm run dev` dijalankan, login dengan akun test berhasil dan redirect ke `/panitia/dashboard` maupun `/leader/dashboard` sesuai role masing-masing.
+
+Data test (`*@test.local`) sudah dibersihkan Yolanda dari database setelah verifikasi selesai — jadi kalau di Fase 2 nanti tabel `sites`/`kepanitiaan`/`kepanitiaan_site`/`users` masih kosong, itu wajar, bukan bug.
 
 **`middleware.ts` → `proxy.ts`**: Next.js 16 men-deprecate file convention `middleware.js` dan menggantinya dengan `proxy.js` (fungsi dan nama file berubah, behavior sama — lihat `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md`). Karena itu redirect-berdasarkan-role dan refresh session Supabase ditaruh di **`proxy.ts`** di root project (bukan `middleware.ts`), dengan fungsi bernama `proxy` (bukan `middleware`). Logic session-refresh-nya sendiri ada di helper `lib/supabase/middleware.ts` (nama file helper ini sengaja dipertahankan, karena bukan file-convention Next.js — cuma modul biasa; kalau mau di-rename ke `lib/supabase/proxy.ts` boleh, tidak ada bedanya secara fungsional). `proxy.ts` meng-exclude `_next/static`, `_next/image`, `favicon.ico`, dan file gambar statis dari matcher-nya.
 
