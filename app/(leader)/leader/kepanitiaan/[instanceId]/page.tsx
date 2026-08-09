@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CommitteeMembersSection, type CommitteeMember } from "@/components/committee/committee-members-section";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { deleteInstance } from "@/lib/kepanitiaan/actions";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function InstanceDetailPage({
@@ -42,6 +44,8 @@ export default async function InstanceDetailPage({
     .order("created_at");
 
   const currentPath = `/leader/kepanitiaan/${instanceId}`;
+  const namaInstance = `${typedInstance.kepanitiaan?.nama} @ ${typedInstance.site?.nama_site}`;
+  const deleteAction = deleteInstance.bind(null, instanceId);
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
@@ -49,10 +53,21 @@ export default async function InstanceDetailPage({
         <Link href="/leader/kepanitiaan" className="text-sm text-muted-foreground hover:underline">
           ← Kembali ke daftar kepanitiaan
         </Link>
-        <h1 className="text-xl font-semibold">
-          {typedInstance.kepanitiaan?.nama} @ {typedInstance.site?.nama_site}
-        </h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-xl font-semibold">{namaInstance}</h1>
+          <form action={deleteAction}>
+            <ConfirmSubmitButton
+              size="sm"
+              variant="destructive"
+              confirmMessage={`Hapus instance "${namaInstance}"? Susunan panitia, bucket, dan tugas di instance ini ikut terhapus permanen. Instance site lain di kepanitiaan yang sama tidak terpengaruh.`}
+            >
+              Hapus Instance Ini
+            </ConfirmSubmitButton>
+          </form>
+        </div>
       </div>
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Card>
         <CardHeader>
@@ -70,11 +85,12 @@ export default async function InstanceDetailPage({
         </CardContent>
       </Card>
 
+      {/* error sudah ditampilkan di header halaman ini, jadi tidak dioper lagi
+          ke section supaya tidak muncul dobel. */}
       <CommitteeMembersSection
         kepanitiaanSiteId={instanceId}
         members={(members ?? []) as CommitteeMember[]}
         currentPath={currentPath}
-        error={error}
       />
     </main>
   );
