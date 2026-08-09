@@ -120,14 +120,14 @@ Jangan tambahkan tabel/kolom untuk: notulensi meeting, game path journey, leader
 - [x] Fase 0 — Setup Project (kode & struktur selesai; project Supabase sudah dibuat, `.env.local` terisi kredensial asli, `next build`/`next dev` sukses tanpa error dan sudah diverifikasi jalan lokal)
 - [x] Fase 1 — Auth & Skema Data (migration SQL sudah dijalankan ke Supabase asli, RLS sudah diuji manual dan terbukti panitia A tidak bisa lihat data instance B, login lewat `npm run dev` sudah dicoba dan redirect sesuai role sukses untuk akun panitia maupun leader — diverifikasi langsung oleh Yolanda)
 - [x] Fase 2 — Manajemen Kepanitiaan & Susunan Panitia (kedua migration sudah dijalankan ke Supabase asli dan diverifikasi live oleh Yolanda: form leader bisa membuat kepanitiaan multi-site, tiap instance otomatis dapat 6 bucket default, menambah site ke kepanitiaan yang sudah ada juga jalan, dan CRUD susunan panitia berfungsi. Sisa yang belum diuji: isolasi RLS `committee_members` antar akun panitia + halaman `/panitia/susunan` dari sisi akun panitia — lihat `supabase/verify_fase2.sql` poin 7-8)
-- [ ] Fase 3 — Timeline Pelaksanaan
+- [x] Fase 3 — Timeline Pelaksanaan (kode selesai, `next build`/`next lint`/`tsc --noEmit` sukses di sandbox; tabel `timeline_milestones` + RLS-nya sudah ada sejak migration Fase 1 jadi **tidak ada migration SQL baru** di fase ini — belum diverifikasi live oleh Yolanda, lihat catatan di bawah)
 - [ ] Fase 4 — Bucket Tugas & Breakdown
 - [ ] Fase 5 — Download/Submit Template Budgeting
 - [ ] Fase 6 — Dashboard Kepanitiaan (Leader)
 - [ ] Fase 7 — Notifikasi
 - [ ] Fase 8 — Polish Desain
 
-**Fase berikutnya yang harus dikerjakan: Fase 3**
+**Fase berikutnya yang harus dikerjakan: Fase 4** (setelah Yolanda verifikasi live Fase 3 — lihat catatan Fase 3 di bawah)
 
 ## 9. Catatan Teknis per Fase
 
@@ -216,3 +216,23 @@ Kedua halaman susunan panitia (leader & panitia) memakai komponen bersama `compo
 - **Server dev lama sering nyangkut di port 3000** setelah beberapa kali restart, bikin halaman lambat/`Failed to fetch` walau kodenya sudah benar. Next.js akan bilang "Another next dev server is already running" + kasih PID-nya; matikan dengan `taskkill /PID <pid> /F` lalu `npm run dev` lagi.
 
 **Belum diverifikasi live**: RLS `committee_members_scoped` belum diuji ulang khusus untuk flow tambah/edit/hapus anggota dari dua akun panitia berbeda (Fase 1 hanya menguji isolasi di tabel `buckets`), dan halaman `/panitia/susunan` belum pernah dibuka dengan akun panitia sungguhan karena akun test-nya sudah dihapus. Langkah manualnya ada di `supabase/verify_fase2.sql` poin 7-8 — layak dikerjakan di awal Fase 3 kalau nanti bikin akun panitia baru.
+
+### Fase 3 — Timeline Pelaksanaan
+
+**Tidak ada migration SQL baru di fase ini.** Tabel `timeline_milestones` dan policy `timeline_milestones_scoped` (pola `is_leader() OR kepanitiaan_site_id = current_user_kepanitiaan_site_id()`, sama seperti `buckets`/`committee_members`) sudah dibuat dari migration Fase 1 (`20260809000001_fase1_schema_and_rls.sql`) tapi belum pernah dipakai UI-nya sampai fase ini. Karena RLS-nya sudah ada dan sudah mengikuti pola yang sama-sama dipakai `buckets` (yang sudah teruji isolasinya di Fase 1), Fase 3 murni kerja UI — tidak menyentuh skema/RLS sama sekali.
+
+**Komponen & actions baru**, mengikuti pola `committee-members-section.tsx`/`lib/committee/actions.ts` dari Fase 2 persis:
+- `lib/timeline/actions.ts`: `addMilestone`/`updateMilestone`/`deleteMilestone`. Validasi tambahan yang tidak ada di pola committee: `tanggal_selesai` (opsional) ditolak dengan pesan error kalau lebih awal dari `tanggal_mulai` (perbandingan string ISO `yyyy-mm-dd`, aman karena format `<input type="date">` selalu ISO).
+- `components/timeline/timeline-section.tsx` (`TimelineSection`, dipakai leader & panitia): render "vertical timeline sederhana" — list milestone diurutkan ascending by `tanggal_mulai` (di-sort di komponen, bukan query, supaya konsisten walau data belum di-`order()` dengan benar dari pemanggil), tiap item punya dot + garis vertikal di kolom kiri (garis di-skip untuk item terakhir) dan card form edit di kanan (pola form-per-baris yang sama seperti committee members: tidak butuh client-side JS). Form tambah milestone baru di bagian bawah, sama seperti bucket committee.
+
+**Halaman**:
+- Leader: **tidak dibuat route baru** — `TimelineSection` di-inline langsung ke `/leader/kepanitiaan/[instanceId]/page.tsx` (di atas `CommitteeMembersSection`), mengikuti pola halaman detail instance Fase 2 yang sudah menumpuk beberapa section (bucket read-only + committee) di satu halaman. Kalau nanti halaman ini kepanjangan setelah Fase 4/5 nambah section lagi, pertimbangkan pecah jadi tab/sub-route.
+- Panitia: dibuat route baru `/panitia/timeline`, isinya sama persis strukturnya dengan `/panitia/susunan` (resolve `kepanitiaan_site_id` dari `public.users` di server, bukan dari input, supaya panitia tidak bisa akses instance lain — RLS `timeline_milestones_scoped` jadi lapis kedua). Link ke halaman ini ditambahkan di `/panitia/dashboard`.
+
+**Verifikasi yang sudah dilakukan (di sandbox, bukan live)**: `npm install` (registry npm tidak diblokir, sama seperti Fase 2), `next build`, `next lint`, `tsc --noEmit` — semua sukses dengan `.env.local` placeholder sementara (dihapus lagi sebelum commit, tidak pernah masuk git, sama seperti pola Fase 2). Koneksi nyata ke Supabase tetap tidak bisa dites dari sandbox ini.
+
+**Belum diverifikasi live oleh Yolanda** — perlu dicoba manual sebelum lanjut Fase 4:
+1. Buka `/leader/kepanitiaan/[instanceId]` untuk instance FIND@Cibitung, tambah 2-3 milestone lewat form di bagian Timeline Pelaksanaan.
+2. Buka instance FIND@Jakarta-Area (site lain, kepanitiaan sama) — pastikan timeline-nya kosong/independen, tidak ikut menampilkan milestone dari Cibitung. Ini yang jadi kriteria "Selesai jika" Fase 3 di section 6.
+3. Coba edit & hapus milestone dari kedua sisi (leader di halaman instance, dan panitia di `/panitia/timeline` kalau sudah ada akun panitia test) untuk pastikan urutan re-sort setelah ubah tanggal, dan validasi "tanggal selesai tidak boleh sebelum tanggal mulai" muncul dengan benar.
+4. Login sebagai akun panitia instance lain, coba akses `/panitia/timeline` — harus hanya lihat milestone instance sendiri (RLS `timeline_milestones_scoped` belum pernah diuji manual sama sekali, beda dengan `buckets` yang sudah diuji Fase 1).
