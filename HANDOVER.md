@@ -128,3 +128,24 @@ Jangan tambahkan tabel/kolom untuk: notulensi meeting, game path journey, leader
 - [ ] Fase 8 — Polish Desain
 
 **Fase berikutnya yang harus dikerjakan: Fase 1**
+
+## 9. Catatan Teknis per Fase
+
+> Detail implementasi & keputusan teknis tiap fase, supaya session berikutnya tidak perlu menebak-nebak dari riwayat chat yang sudah tidak ada.
+
+### Fase 0 — Setup Project
+
+**Struktur route yang benar-benar dibuat** (route group `(auth)`/`(panitia)`/`(leader)` tidak muncul di URL, jadi path aktualnya beda dari nama foldernya):
+- `app/(auth)/login/page.tsx` → `/login` (placeholder, isi sungguhan di Fase 1)
+- `app/(panitia)/panitia/dashboard/page.tsx` → `/panitia/dashboard` (placeholder, Fase 2+)
+- `app/(leader)/leader/dashboard/page.tsx` → `/leader/dashboard` (placeholder, Fase 6)
+
+Catatan: awalnya kedua route group `(panitia)` dan `(leader)` sama-sama punya halaman `dashboard` langsung di dalamnya, tapi ini **collision** — route group tidak menambah segment ke URL, jadi keduanya sama-sama resolve ke `/dashboard` dan `next build` gagal. Makanya masing-masing dinested lagi satu level (`panitia/dashboard`, `leader/dashboard`). Kalau mau ubah struktur URL di fase berikutnya, ingat aturan ini.
+
+**shadcn/ui di-setup manual**, bukan lewat `npx shadcn init` — CLI resminya butuh akses ke `ui.shadcn.com` yang diblokir network policy sandbox Claude Code on the web saat itu. Yang dibuat manual: `components.json`, `lib/utils.ts` (helper `cn()`), design tokens (CSS variables) di `app/globals.css`, dependency inti (`clsx`, `tailwind-merge`, `class-variance-authority`, `lucide-react`, `tw-animate-css`, `@radix-ui/react-slot`), dan satu komponen contoh `components/ui/button.tsx`. Kalau di session/environment lain `ui.shadcn.com` bisa diakses, silakan pakai `npx shadcn@latest add <component>` seperti biasa untuk komponen baru — strukturnya sudah kompatibel.
+
+**Supabase client**: `lib/supabase/client.ts` (browser, pakai `createBrowserClient`) dan `lib/supabase/server.ts` (Server Component, pakai `createServerClient` + `cookies()` dari `next/headers`). Keduanya dari `@supabase/ssr`. Middleware untuk refresh session **belum dibuat** — itu bagian dari Fase 1 ("Middleware redirect berdasarkan role").
+
+**Kredensial Supabase**: project sudah dibuat di supabase.com (Project URL: `https://hdzhlltitaxzirapkuqo.supabase.co`, key pakai format baru `sb_publishable_...`). Nilainya **hanya** ada di `.env.local` milik Yolanda secara lokal (tidak pernah di-commit, dilindungi `.gitignore` pola `.env*`). Template kosongnya ada di `.env.local.example` (ini yang di-commit). **Setiap session/environment baru yang mengerjakan project ini harus minta Yolanda isi ulang `.env.local` secara manual** — tidak bisa diasumsikan sudah ada, karena tidak tersimpan di repo maupun di sandbox cloud (sandbox bersifat ephemeral, hilang begitu session berakhir).
+
+**Kendala network sandbox**: sandbox Claude Code on the web yang dipakai untuk Fase 0 memblokir koneksi HTTPS ke domain di luar allowlist (npm, GitHub, dst) — termasuk `*.supabase.co` dan `ui.shadcn.com`. Karena itu, verifikasi live koneksi ke Supabase **dilakukan manual oleh Yolanda di laptopnya sendiri** (clone branch, isi `.env.local`, `npm run dev`, cek tidak ada error) — bukan dari dalam sandbox. Kalau session berikutnya jalan di sandbox serupa dan butuh koneksi nyata ke Supabase (migration SQL di Fase 1, dst), kemungkinan besar akan kena kendala yang sama dan perlu strategi serupa: siapkan perintah/SQL-nya, minta Yolanda yang jalankan di sisi lokal atau lewat Supabase Dashboard (SQL Editor) langsung.
