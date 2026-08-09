@@ -40,7 +40,7 @@ export default async function InstanceDetailPage({
 
   const { data: members } = await supabase
     .from("committee_members")
-    .select("id, nama, email, role")
+    .select("id, nama, email, role, bucket_id")
     .eq("kepanitiaan_site_id", instanceId)
     .order("created_at");
 
@@ -103,6 +103,7 @@ export default async function InstanceDetailPage({
       <CommitteeMembersSection
         kepanitiaanSiteId={instanceId}
         members={(members ?? []) as CommitteeMember[]}
+        buckets={(buckets ?? []).map(({ id, nama_bidang }) => ({ id, nama_bidang }))}
         currentPath={currentPath}
       />
     </main>

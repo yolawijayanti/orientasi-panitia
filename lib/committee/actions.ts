@@ -15,6 +15,18 @@ function withError(redirectTo: string, message: string): never {
   redirect(`${redirectTo}?error=${encodeURIComponent(message)}`);
 }
 
+/**
+ * bucket_id cuma relevan untuk role leader_bidang. Dropdown-nya sengaja
+ * selalu ditampilkan di UI (tidak disembunyikan lewat JS tergantung role
+ * yang dipilih) supaya section ini tetap tidak butuh client-side JS, tapi
+ * nilainya di-null-kan di sini kalau role bukan leader_bidang -- supaya
+ * tidak ada bucket_id "nyangkut" dari role sebelumnya.
+ */
+function parseBucketId(role: CommitteeRole, value: FormDataEntryValue | null): string | null {
+  if (role !== "leader_bidang") return null;
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 export async function addCommitteeMember(
   kepanitiaanSiteId: string,
   redirectTo: string,
@@ -26,12 +38,14 @@ export async function addCommitteeMember(
   }
 
   const email = formData.get("email");
+  const role = parseRole(formData.get("role"));
   const supabase = await createClient();
   const { error } = await supabase.from("committee_members").insert({
     kepanitiaan_site_id: kepanitiaanSiteId,
     nama: (nama as string).trim(),
     email: typeof email === "string" && email.trim() ? email.trim() : null,
-    role: parseRole(formData.get("role")),
+    role,
+    bucket_id: parseBucketId(role, formData.get("bucket_id")),
   });
 
   if (error) {
@@ -52,13 +66,15 @@ export async function updateCommitteeMember(
   }
 
   const email = formData.get("email");
+  const role = parseRole(formData.get("role"));
   const supabase = await createClient();
   const { error } = await supabase
     .from("committee_members")
     .update({
       nama: (nama as string).trim(),
       email: typeof email === "string" && email.trim() ? email.trim() : null,
-      role: parseRole(formData.get("role")),
+      role,
+      bucket_id: parseBucketId(role, formData.get("bucket_id")),
     })
     .eq("id", memberId);
 

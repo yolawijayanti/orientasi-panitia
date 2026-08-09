@@ -46,7 +46,13 @@ export default async function SusunanPanitiaPage({
 
   const { data: members } = await supabase
     .from("committee_members")
-    .select("id, nama, email, role")
+    .select("id, nama, email, role, bucket_id")
+    .eq("kepanitiaan_site_id", kepanitiaanSiteId)
+    .order("created_at");
+
+  const { data: buckets } = await supabase
+    .from("buckets")
+    .select("id, nama_bidang")
     .eq("kepanitiaan_site_id", kepanitiaanSiteId)
     .order("created_at");
 
@@ -61,6 +67,7 @@ export default async function SusunanPanitiaPage({
       <CommitteeMembersSection
         kepanitiaanSiteId={kepanitiaanSiteId}
         members={(members ?? []) as CommitteeMember[]}
+        buckets={buckets ?? []}
         currentPath="/panitia/susunan"
         error={error}
       />
