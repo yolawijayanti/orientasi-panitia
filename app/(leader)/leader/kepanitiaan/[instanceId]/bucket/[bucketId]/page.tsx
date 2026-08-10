@@ -61,9 +61,22 @@ export default async function LeaderBucketDetailPage({
 
   const currentPath = `/leader/kepanitiaan/${instanceId}/bucket/${bucketId}`;
 
-  const [template, submission] = bucket.is_budgeting
-    ? await Promise.all([loadBudgetTemplate(supabase), loadBudgetSubmission(supabase, instanceId)])
-    : [null, null];
+  let template = null;
+  let submission = null;
+  if (bucket.is_budgeting) {
+    const { data: instance } = await supabase
+      .from("kepanitiaan_site")
+      .select("kepanitiaan_id")
+      .eq("id", instanceId)
+      .single();
+
+    [template, submission] = await Promise.all([
+      instance?.kepanitiaan_id
+        ? loadBudgetTemplate(supabase, instance.kepanitiaan_id)
+        : Promise.resolve(null),
+      loadBudgetSubmission(supabase, instanceId),
+    ]);
+  }
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">

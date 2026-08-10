@@ -8,9 +8,12 @@ import {
   type CommitteeMember,
 } from "@/components/committee/committee-members-section";
 import { MyTasksSection } from "@/components/tasks/my-tasks-section";
+import { BudgetSubmissionSection } from "@/components/budget/budget-submission-section";
 import { loadBucketBoardData } from "@/lib/buckets/board-data";
 import { loadMyTasks } from "@/lib/tasks/my-tasks";
 import { loadCandidateAccounts } from "@/lib/committee/candidate-accounts";
+import { loadBudgetTemplate } from "@/lib/budget/template";
+import { loadBudgetSubmission } from "@/lib/budget/submission";
 import { createClient } from "@/lib/supabase/server";
 
 const CURRENT_PATH = "/panitia/workspace";
@@ -48,12 +51,12 @@ export default async function PanitiaWorkspacePage({
 
   const { data: instance } = await supabase
     .from("kepanitiaan_site")
-    .select("kepanitiaan(nama), site:sites(nama_site)")
+    .select("kepanitiaan(id, nama), site:sites(nama_site)")
     .eq("id", kepanitiaanSiteId)
     .single();
 
   const typedInstance = instance as unknown as {
-    kepanitiaan: { nama: string } | null;
+    kepanitiaan: { id: string; nama: string } | null;
     site: { nama_site: string } | null;
   } | null;
 
@@ -79,6 +82,11 @@ export default async function PanitiaWorkspacePage({
   const board = await loadBucketBoardData(supabase, kepanitiaanSiteId, bucketRows);
   const myTasks = await loadMyTasks(supabase, kepanitiaanSiteId, authData.user.email);
   const candidateAccounts = await loadCandidateAccounts(supabase, kepanitiaanSiteId);
+  const kepanitiaanId = typedInstance?.kepanitiaan?.id;
+  const [budgetTemplate, budgetSubmission] = await Promise.all([
+    kepanitiaanId ? loadBudgetTemplate(supabase, kepanitiaanId) : Promise.resolve(null),
+    loadBudgetSubmission(supabase, kepanitiaanSiteId),
+  ]);
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
@@ -140,6 +148,18 @@ export default async function PanitiaWorkspacePage({
                 members={(members ?? []) as CommitteeMember[]}
                 buckets={bucketRows.map(({ id, nama_bidang }) => ({ id, nama_bidang }))}
                 candidateAccounts={candidateAccounts}
+                currentPath={CURRENT_PATH}
+              />
+            ),
+          },
+          {
+            id: "submit-budget",
+            label: "Submit Budget",
+            content: (
+              <BudgetSubmissionSection
+                kepanitiaanSiteId={kepanitiaanSiteId}
+                submission={budgetSubmission}
+                template={budgetTemplate}
                 currentPath={CURRENT_PATH}
               />
             ),
