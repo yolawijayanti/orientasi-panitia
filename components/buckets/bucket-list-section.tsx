@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SubmitButton } from "@/components/submit-button";
 import { Label } from "@/components/ui/label";
 import { BucketBoard, type BoardTask } from "@/components/buckets/bucket-board";
 import { ProgressRing } from "@/components/buckets/progress-ring";
@@ -58,6 +58,17 @@ export function BucketListSection({
             <br />
             {bucketSelesai} dari {buckets.length} bidang sudah 100%
           </p>
+
+          {/* Form tambah bidang ditaruh di sini (bawah ring), bukan di bawah
+              board -- kalau di bawah board, tombolnya baru kelihatan setelah
+              scroll jauh melewati semua kolom bidang. */}
+          <form action={addAction} className="mt-2 flex w-full flex-col gap-2 border-t pt-3">
+            <Label htmlFor="nama-bidang-baru">Bidang Tugas Baru</Label>
+            <Input id="nama-bidang-baru" name="nama_bidang" placeholder="mis. Sponsorship" required />
+            <SubmitButton size="sm" pendingLabel="Menambah…">
+              + Tambah Bidang
+            </SubmitButton>
+          </form>
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
@@ -71,18 +82,10 @@ export function BucketListSection({
               progressByBucket={progressByBucket}
               memberNameById={memberNameById}
               basePath={basePath}
+              currentPath={currentPath}
             />
           )}
 
-          <form action={addAction} className="flex flex-wrap items-end gap-2 border-t pt-4">
-            <div className="flex min-w-40 flex-1 flex-col gap-1">
-              <Label htmlFor="nama-bidang-baru">Bidang Tugas</Label>
-              <Input id="nama-bidang-baru" name="nama_bidang" required />
-            </div>
-            <Button type="submit" size="sm">
-              + Tambah Bidang
-            </Button>
-          </form>
         </div>
       </div>
     </div>

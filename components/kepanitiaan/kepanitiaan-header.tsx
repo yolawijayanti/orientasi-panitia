@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ImagePlus, Pencil } from "lucide-react";
+import { CheckCircle2, ImagePlus, Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,10 +33,34 @@ export function KepanitiaanHeader({
   removeLogoAction: (formData: FormData) => Promise<void>;
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   async function handleRename(formData: FormData) {
     await renameAction(formData);
     setIsEditing(false);
+    setNotice("Nama kepanitiaan berhasil diperbarui.");
+  }
+
+  /**
+   * Tutup panel edit + tampilkan konfirmasi setelah upload berhasil. Tanpa
+   * ini, panel tetap terbuka dengan input file kosong ("No file chosen") dan
+   * tidak ada tanda apapun bahwa uploadnya berhasil -- user tidak tahu
+   * apakah harus mengulang atau sudah selesai.
+   *
+   * Kalau upload GAGAL, server action memanggil redirect() yang melempar,
+   * jadi baris di bawahnya tidak jalan dan pesan errornya muncul lewat
+   * ?error= seperti biasa -- bukan sebagai notifikasi sukses palsu.
+   */
+  async function handleUpload(formData: FormData) {
+    await uploadLogoAction(formData);
+    setIsEditing(false);
+    setNotice("Logo berhasil diperbarui.");
+  }
+
+  async function handleRemoveLogo(formData: FormData) {
+    await removeLogoAction(formData);
+    setIsEditing(false);
+    setNotice("Logo berhasil dihapus.");
   }
 
   return (
@@ -69,12 +93,27 @@ export function KepanitiaanHeader({
         </div>
 
         {!isEditing && (
-          <Button type="button" size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setNotice(null);
+              setIsEditing(true);
+            }}
+          >
             <Pencil className="size-3.5" />
             Edit
           </Button>
         )}
       </div>
+
+      {notice && (
+        <p className="flex items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+          <CheckCircle2 className="size-4 shrink-0" />
+          {notice}
+        </p>
+      )}
 
       {isEditing && (
         <div className="flex flex-col gap-3 rounded-md border bg-muted/40 p-3">
@@ -95,7 +134,7 @@ export function KepanitiaanHeader({
             </Button>
           </form>
 
-          <form action={uploadLogoAction} className="flex flex-wrap items-end gap-2 border-t pt-3">
+          <form action={handleUpload} className="flex flex-wrap items-end gap-2 border-t pt-3">
             <div className="flex min-w-56 flex-1 flex-col gap-1">
               <Label htmlFor={`logo-${nama}`}>Logo (PNG / JPG, maks 2 MB)</Label>
               <Input
@@ -114,7 +153,7 @@ export function KepanitiaanHeader({
               <ConfirmSubmitButton
                 size="sm"
                 variant="outline"
-                formAction={removeLogoAction}
+                formAction={handleRemoveLogo}
                 confirmMessage={`Hapus logo "${nama}"?`}
               >
                 Hapus Logo

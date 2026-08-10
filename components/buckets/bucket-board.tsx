@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
-import { ProgressBar } from "@/components/buckets/progress-bar";
+import { BucketColumnHeader } from "@/components/buckets/bucket-column-header";
+import { renameBucket, deleteBucket } from "@/lib/buckets/actions";
 import { STATUS_CHIP_CLASSNAME, STATUS_LABEL, formatDeadline } from "@/lib/tasks/format";
 import { cn } from "@/lib/utils";
 import type { ItemStatus } from "@/lib/tasks/actions";
@@ -31,12 +31,14 @@ export function BucketBoard({
   progressByBucket,
   memberNameById,
   basePath,
+  currentPath,
 }: {
   buckets: BucketSummary[];
   tasksByBucket: Record<string, BoardTask[]>;
   progressByBucket: Record<string, Progress>;
   memberNameById: Record<string, string>;
   basePath: string;
+  currentPath: string;
 }) {
   return (
     <div className="flex gap-4 overflow-x-auto pb-2">
@@ -49,25 +51,14 @@ export function BucketBoard({
             key={bucket.id}
             className="flex w-72 shrink-0 flex-col gap-2 rounded-lg border bg-muted/40 p-3"
           >
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-start justify-between gap-2">
-                <Link
-                  href={`${basePath}/${bucket.id}`}
-                  className="text-sm font-semibold hover:underline"
-                >
-                  {bucket.nama_bidang}
-                </Link>
-                {bucket.is_budgeting && (
-                  <Badge variant="outline" className="shrink-0">
-                    budgeting
-                  </Badge>
-                )}
-              </div>
-              <ProgressBar percent={progress.percent} />
-              <span className="text-xs text-muted-foreground">
-                {progress.percent}% · {progress.done}/{progress.total} selesai
-              </span>
-            </div>
+            <BucketColumnHeader
+              namaBidang={bucket.nama_bidang}
+              isBudgeting={bucket.is_budgeting}
+              href={`${basePath}/${bucket.id}`}
+              progress={progress}
+              renameAction={renameBucket.bind(null, bucket.id, currentPath)}
+              deleteAction={deleteBucket.bind(null, bucket.id, currentPath)}
+            />
 
             <div className="flex flex-col gap-2">
               {tasks.length === 0 && (
