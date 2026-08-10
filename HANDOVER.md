@@ -123,7 +123,7 @@ Jangan tambahkan tabel/kolom untuk: notulensi meeting, game path journey, leader
 - [x] Fase 3 — Timeline Pelaksanaan — **selesai & terverifikasi live sepenuhnya**, tidak ada yang menggantung. Kode termasuk 3 ronde revisi + 2 bugfix: flag status milestone, Gantt chart mingguan (+ bugfix drift tanggal & bugfix lebar bar/warna status), edit-lock milestone, bidang untuk leader_bidang, dan hapus bucket default "Penetapan Susunan Kepanitiaan". Kedua migration baru (`20260809000004`, `20260809000005`) sudah dijalankan. Independensi timeline antar-instance dan isolasi RLS `timeline_milestones_scoped`/`committee_members_scoped` dari sisi akun panitia (pakai `panitia-a@test.local`/`panitia-b@test.local`, disambungkan ke instance asli lewat `verify_fase3.sql`) **sudah dikonfirmasi**: akun panitia login benar, cuma lihat instance sendiri, bisa CRUD susunan panitia & timeline miliknya sendiri.
 - [x] Fase 4 — Bucket Tugas & Breakdown — **selesai & terverifikasi live sepenuhnya**, tidak ada yang menggantung. Kode lewat **5 ronde revisi live** dengan Yolanda — lihat rincian lengkap di Catatan Teknis Fase 4 di bawah. Board Trello, assign anggota, upload logo kepanitiaan, tab menyamping untuk leader & panitia, tab "Tugas Saya", pembatasan tambah-anggota ke akun terdaftar, dan rename aplikasi jadi **PanitiYAY** semua sudah dikonfirmasi live. **Isolasi RLS `tasks_scoped`/`subtasks_scoped` dari sisi akun panitia juga sudah dikonfirmasi**: `panitia-e@test.local`/`panitia-d@test.local` (di 2 instance berbeda — `panitia-e` dibuat menggantikan `panitia-c` karena akun `panitia-c` lama sempat terkendala login, lihat catatan di bawah) dites lengkap 3 langkah — (a) panitia-e tambah tugas percobaan di instance-nya, (b) panitia-d login dan **tidak** melihat tugas itu sama sekali (baik di Task Board maupun Tugas Saya), (c) panitia-d coba akses langsung URL bucket milik instance panitia-e lewat address bar dan **kena 404**, bukan bocor data. Ketiganya lolos.
 - [x] Fase 5 — Download/Submit Template Budgeting
-- [ ] Fase 6 — Dashboard Kepanitiaan (Leader)
+- [x] Fase 6 — Dashboard Kepanitiaan (Leader)
 - [ ] Fase 7 — Notifikasi
 - [ ] Fase 8 — Polish Desain
 
@@ -136,9 +136,9 @@ Jangan tambahkan tabel/kolom untuk: notulensi meeting, game path journey, leader
 
 **Migration yang sudah dijalankan & dikonfirmasi Yolanda**: `20260810000009_fase5_budget_storage.sql` (setelah `...0001` s/d `...0008` dari fase-fase sebelumnya).
 
-**Fase 6 dikerjakan paralel dengan checklist Fase 5 di atas** (izin eksplisit Yolanda, bukan penyimpangan diam-diam dari urutan "satu fase per session") -- sekarang giliran Fase 6 yang menunggu verifikasi live.
+**Fase 6 -- selesai & terverifikasi live oleh Yolanda** (dikerjakan paralel dengan checklist Fase 5 di atas, izin eksplisit Yolanda). Dashboard checklist multi-select + kartu perbandingan progres di `/leader/dashboard` sudah dicoba lewat preview Vercel PR #8 dan dikonfirmasi OK, lalu PR #8 di-merge ke `main`. Tidak ada migration baru -- murni membaca tabel yang sudah ada. Detail lengkap ada di **Catatan Teknis Fase 6** di bawah.
 
-**Fase 6 -- kode sudah selesai ditulis, belum diverifikasi live.** Murni membaca tabel yang sudah ada (termasuk `budget_submissions`, migration `...0009` sudah dikonfirmasi jalan), tidak ada migration baru. Checklist verifikasi live-nya (6 langkah) ada di **Catatan Teknis Fase 6** di bawah.
+**Lanjut ke Fase 7 — Notifikasi.** Ini fase berikutnya yang belum dikerjakan: reminder berkala ke panitia menjelang deadline task/subtask (lewat cron, section 6 Fase 7), dan notifikasi event-based ke leader saat budget submission lengkap atau seluruh tugas satu instance selesai 100%. Session yang mengerjakan ini harus baca dulu section 6 ("Urutan Pembangunan") bagian Fase 7 dan section 4 tabel `notifications_log` di atas untuk konteks penuh sebelum mulai desain (pilihan cron: Supabase Edge Functions + pg_cron atau Vercel Cron -- belum diputuskan yang mana, lihat section 4 tech stack).
 
 ## 9. Catatan Teknis per Fase
 
@@ -513,12 +513,6 @@ Setelah kedelapan langkah di atas lolos, centang Fase 5 selesai di section 8.
 
 **Verifikasi yang sudah dilakukan (di sandbox, bukan live)**: `npm install`, `next build`, `next lint` -- semua bersih dengan `.env.local` placeholder sementara (dihapus lagi sebelum commit, tidak pernah masuk git, pola sama seperti fase-fase sebelumnya). Koneksi nyata ke Supabase (isi checklist multi-select dengan data instance sungguhan, angka progres yang benar) tetap tidak bisa dites dari sandbox ini.
 
-**Langkah verifikasi live yang harus dilakukan Yolanda** (syarat centang Fase 6 di section 8):
-1. Login sebagai leader, buka `/leader/dashboard` -- pastikan card "Pilih Instance untuk Dibandingkan" muncul dengan checklist dikelompokkan per event, masing-masing menampilkan nama site sebagai pilihan checkbox.
-2. Centang 2-3 instance dari event yang SAMA maupun event yang BEDA (mis. "FIND @ Cibitung" + "PON @ Ciawi"), klik "Tampilkan Perbandingan" -- pastikan muncul baris kartu yang bisa di-scroll horizontal, masing-masing menampilkan nama event+site yang benar, ring persentase, dan progres per bidang instance itu (cocokkan angkanya dengan yang dilihat langsung di workspace/board instance tersebut).
-3. Refresh halaman (atau copy-paste URL-nya ke tab baru) -- pastikan instance yang tadi dicentang **tetap tercentang** dan kartunya tetap tampil (bukti pilihan tersimpan di URL, bukan cuma state sementara).
-4. Cek badge status Budgeting di tiap kartu -- untuk instance yang panitia-nya sudah submit lengkap (kalau Fase 5 sudah diverifikasi), badge harus "Lengkap"; untuk yang belum, "Belum Lengkap".
-5. Klik "Buka Instance" di salah satu kartu -- pastikan masuk ke halaman detail instance (`/leader/kepanitiaan/[instanceId]`) yang benar, bukan instance lain.
-6. Uncheck semua instance dan submit ulang -- pastikan baris kartu perbandingan hilang (kembali ke tampilan checklist saja, tidak ada kartu kosong/error).
+**Langkah verifikasi live** (6 langkah, cek deskripsi di atas untuk detail: checklist multi-select per event, kartu perbandingan side-by-side dengan ring persentase + progres per bidang + badge budgeting, pilihan tersimpan di URL, tombol "Buka Instance", uncheck semua kembali ke tampilan checklist saja).
 
-Setelah keenam langkah di atas lolos, centang Fase 6 selesai di section 8 dan lanjut ke **Fase 7 — Notifikasi**.
+**Sudah dikonfirmasi Yolanda** lewat preview deployment Vercel di PR #8 ("ok looks good") -- PR #8 sudah di-merge ke `main`. Fase 6 resmi dicentang selesai di section 8, tidak ada yang menggantung. Lanjut ke **Fase 7 — Notifikasi**.
