@@ -16,16 +16,24 @@ export type CommitteeMember = {
   nama: string;
   email: string | null;
   role: "anggota" | "leader_bidang";
+  bucket_id: string | null;
+};
+
+export type Bucket = {
+  id: string;
+  nama_bidang: string;
 };
 
 export function CommitteeMembersSection({
   kepanitiaanSiteId,
   members,
+  buckets,
   currentPath,
   error,
 }: {
   kepanitiaanSiteId: string;
   members: CommitteeMember[];
+  buckets: Bucket[];
   currentPath: string;
   error?: string;
 }) {
@@ -78,6 +86,23 @@ export function CommitteeMembersSection({
                       <option value="leader_bidang">Leader Bidang</option>
                     </select>
                   </div>
+                  {buckets.length > 0 && (
+                    <div className="flex min-w-40 flex-col gap-1">
+                      <Label htmlFor={`bucket-${member.id}`}>Bidang</Label>
+                      <select
+                        id={`bucket-${member.id}`}
+                        name="bucket_id"
+                        defaultValue={member.bucket_id ?? buckets[0].id}
+                        className={SELECT_CLASSNAME}
+                      >
+                        {buckets.map((bucket) => (
+                          <option key={bucket.id} value={bucket.id}>
+                            {bucket.nama_bidang}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <Button type="submit" size="sm" variant="secondary">
                     Simpan
                   </Button>
@@ -108,6 +133,23 @@ export function CommitteeMembersSection({
               <option value="leader_bidang">Leader Bidang</option>
             </select>
           </div>
+          {buckets.length > 0 && (
+            <div className="flex min-w-40 flex-col gap-1">
+              <Label htmlFor="bucket-baru">Bidang</Label>
+              <select
+                id="bucket-baru"
+                name="bucket_id"
+                defaultValue={buckets[0].id}
+                className={SELECT_CLASSNAME}
+              >
+                {buckets.map((bucket) => (
+                  <option key={bucket.id} value={bucket.id}>
+                    {bucket.nama_bidang}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <Button type="submit" size="sm">
             + Tambah Anggota
           </Button>

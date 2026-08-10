@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CommitteeMembersSection, type CommitteeMember } from "@/components/committee/committee-members-section";
+import { TimelineSection, type Milestone } from "@/components/timeline/timeline-section";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { deleteInstance } from "@/lib/kepanitiaan/actions";
 import { createClient } from "@/lib/supabase/server";
@@ -39,9 +40,15 @@ export default async function InstanceDetailPage({
 
   const { data: members } = await supabase
     .from("committee_members")
-    .select("id, nama, email, role")
+    .select("id, nama, email, role, bucket_id")
     .eq("kepanitiaan_site_id", instanceId)
     .order("created_at");
+
+  const { data: milestones } = await supabase
+    .from("timeline_milestones")
+    .select("id, nama_milestone, tanggal_mulai, tanggal_selesai")
+    .eq("kepanitiaan_site_id", instanceId)
+    .order("tanggal_mulai");
 
   const currentPath = `/leader/kepanitiaan/${instanceId}`;
   const namaInstance = `${typedInstance.kepanitiaan?.nama} @ ${typedInstance.site?.nama_site}`;
@@ -85,11 +92,18 @@ export default async function InstanceDetailPage({
         </CardContent>
       </Card>
 
+      <TimelineSection
+        kepanitiaanSiteId={instanceId}
+        milestones={(milestones ?? []) as Milestone[]}
+        currentPath={currentPath}
+      />
+
       {/* error sudah ditampilkan di header halaman ini, jadi tidak dioper lagi
           ke section supaya tidak muncul dobel. */}
       <CommitteeMembersSection
         kepanitiaanSiteId={instanceId}
         members={(members ?? []) as CommitteeMember[]}
+        buckets={(buckets ?? []).map(({ id, nama_bidang }) => ({ id, nama_bidang }))}
         currentPath={currentPath}
       />
     </main>

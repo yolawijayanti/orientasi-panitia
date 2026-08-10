@@ -1,8 +1,8 @@
 import { LogoutButton } from "@/components/logout-button";
-import { CommitteeMembersSection, type CommitteeMember } from "@/components/committee/committee-members-section";
+import { TimelineSection, type Milestone } from "@/components/timeline/timeline-section";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function SusunanPanitiaPage({
+export default async function TimelinePanitiaPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
@@ -44,31 +44,24 @@ export default async function SusunanPanitiaPage({
     site: { nama_site: string } | null;
   } | null;
 
-  const { data: members } = await supabase
-    .from("committee_members")
-    .select("id, nama, email, role, bucket_id")
+  const { data: milestones } = await supabase
+    .from("timeline_milestones")
+    .select("id, nama_milestone, tanggal_mulai, tanggal_selesai")
     .eq("kepanitiaan_site_id", kepanitiaanSiteId)
-    .order("created_at");
-
-  const { data: buckets } = await supabase
-    .from("buckets")
-    .select("id, nama_bidang")
-    .eq("kepanitiaan_site_id", kepanitiaanSiteId)
-    .order("created_at");
+    .order("tanggal_mulai");
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">
-          Susunan Panitia — {typedInstance?.kepanitiaan?.nama} @ {typedInstance?.site?.nama_site}
+          Timeline Pelaksanaan — {typedInstance?.kepanitiaan?.nama} @ {typedInstance?.site?.nama_site}
         </h1>
         <LogoutButton />
       </div>
-      <CommitteeMembersSection
+      <TimelineSection
         kepanitiaanSiteId={kepanitiaanSiteId}
-        members={(members ?? []) as CommitteeMember[]}
-        buckets={buckets ?? []}
-        currentPath="/panitia/susunan"
+        milestones={(milestones ?? []) as Milestone[]}
+        currentPath="/panitia/timeline"
         error={error}
       />
     </main>

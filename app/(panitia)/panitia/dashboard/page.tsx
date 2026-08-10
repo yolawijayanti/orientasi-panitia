@@ -17,12 +17,15 @@ export default async function PanitiaDashboardPage() {
         </div>
         <LogoutButton />
       </div>
-      <Button asChild className="w-fit">
-        <Link href="/panitia/susunan">Susunan Panitia</Link>
-      </Button>
-      <p className="text-muted-foreground">
-        Timeline dan bucket tugas akan diimplementasikan mulai Fase 3.
-      </p>
+      <div className="flex flex-wrap gap-2">
+        <Button asChild className="w-fit">
+          <Link href="/panitia/susunan">Susunan Panitia</Link>
+        </Button>
+        <Button asChild className="w-fit" variant="outline">
+          <Link href="/panitia/timeline">Timeline Pelaksanaan</Link>
+        </Button>
+      </div>
+      <p className="text-muted-foreground">Bucket tugas akan diimplementasikan mulai Fase 4.</p>
     </main>
   );
 }
