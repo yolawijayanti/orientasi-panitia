@@ -6,6 +6,7 @@ import {
   updateCommitteeMember,
   deleteCommitteeMember,
 } from "@/lib/committee/actions";
+import type { CandidateAccount } from "@/lib/committee/candidate-accounts";
 
 export type CommitteeMember = {
   id: string;
@@ -32,12 +33,14 @@ export function CommitteeMembersSection({
   kepanitiaanSiteId,
   members,
   buckets,
+  candidateAccounts,
   currentPath,
   error,
 }: {
   kepanitiaanSiteId: string;
   members: CommitteeMember[];
   buckets: Bucket[];
+  candidateAccounts: CandidateAccount[];
   currentPath: string;
   error?: string;
 }) {
@@ -95,6 +98,7 @@ export function CommitteeMembersSection({
             )}
             <AddMemberRow
               bucketId={bucket.id}
+              candidateAccounts={candidateAccounts}
               addAction={addCommitteeMember.bind(null, kepanitiaanSiteId, currentPath)}
             />
           </div>

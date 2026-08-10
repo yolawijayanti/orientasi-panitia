@@ -8,6 +8,7 @@ import { BucketListSection, type BucketSummary } from "@/components/buckets/buck
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { deleteInstance } from "@/lib/kepanitiaan/actions";
 import { loadBucketBoardData } from "@/lib/buckets/board-data";
+import { loadCandidateAccounts } from "@/lib/committee/candidate-accounts";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function InstanceDetailPage({
@@ -54,6 +55,7 @@ export default async function InstanceDetailPage({
 
   const bucketRows = (buckets ?? []) as BucketSummary[];
   const board = await loadBucketBoardData(supabase, instanceId, bucketRows);
+  const candidateAccounts = await loadCandidateAccounts(supabase, instanceId);
 
   const currentPath = `/leader/kepanitiaan/${instanceId}`;
   const namaInstance = `${typedInstance.kepanitiaan?.nama} @ ${typedInstance.site?.nama_site}`;
@@ -117,6 +119,7 @@ export default async function InstanceDetailPage({
                 kepanitiaanSiteId={instanceId}
                 members={(members ?? []) as CommitteeMember[]}
                 buckets={(buckets ?? []).map(({ id, nama_bidang }) => ({ id, nama_bidang }))}
+                candidateAccounts={candidateAccounts}
                 currentPath={currentPath}
               />
             ),

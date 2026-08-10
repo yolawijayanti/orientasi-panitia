@@ -10,6 +10,7 @@ import {
 import { MyTasksSection } from "@/components/tasks/my-tasks-section";
 import { loadBucketBoardData } from "@/lib/buckets/board-data";
 import { loadMyTasks } from "@/lib/tasks/my-tasks";
+import { loadCandidateAccounts } from "@/lib/committee/candidate-accounts";
 import { createClient } from "@/lib/supabase/server";
 
 const CURRENT_PATH = "/panitia/workspace";
@@ -77,6 +78,7 @@ export default async function PanitiaWorkspacePage({
   const bucketRows = (buckets ?? []) as BucketSummary[];
   const board = await loadBucketBoardData(supabase, kepanitiaanSiteId, bucketRows);
   const myTasks = await loadMyTasks(supabase, kepanitiaanSiteId, authData.user.email);
+  const candidateAccounts = await loadCandidateAccounts(supabase, kepanitiaanSiteId);
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
@@ -137,6 +139,7 @@ export default async function PanitiaWorkspacePage({
                 kepanitiaanSiteId={kepanitiaanSiteId}
                 members={(members ?? []) as CommitteeMember[]}
                 buckets={bucketRows.map(({ id, nama_bidang }) => ({ id, nama_bidang }))}
+                candidateAccounts={candidateAccounts}
                 currentPath={CURRENT_PATH}
               />
             ),

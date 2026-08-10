@@ -26,7 +26,7 @@ export default async function PanitiaDashboardPage() {
     return (
       <main className="flex min-h-screen flex-col gap-4 p-8">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Selamat datang</h1>
+          <h1 className="text-xl font-semibold">Selamat datang di PanitiYAY</h1>
           <LogoutButton />
         </div>
         <p className="text-muted-foreground">
@@ -77,7 +77,7 @@ export default async function PanitiaDashboardPage() {
     <main className="flex min-h-screen flex-col gap-6 p-8">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Selamat datang! 👋</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Selamat datang di PanitiYAY!</h1>
           <p className="text-sm text-muted-foreground">
             Masuk sebagai {authData.user?.email}
           </p>
