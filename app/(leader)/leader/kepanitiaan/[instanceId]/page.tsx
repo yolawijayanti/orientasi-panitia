@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CommitteeMembersSection, type CommitteeMember } from "@/components/committee/committee-members-section";
 import { TimelineSection, type Milestone } from "@/components/timeline/timeline-section";
+import { BucketListSection, type BucketSummary } from "@/components/buckets/bucket-list-section";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { deleteInstance } from "@/lib/kepanitiaan/actions";
+import { computeBucketProgressMap } from "@/lib/tasks/progress";
+import type { ItemStatus } from "@/lib/tasks/actions";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function InstanceDetailPage({
@@ -50,6 +52,23 @@ export default async function InstanceDetailPage({
     .eq("kepanitiaan_site_id", instanceId)
     .order("tanggal_mulai");
 
+  const bucketIds = (buckets ?? []).map((bucket) => bucket.id);
+
+  const { data: tasksForProgress } = bucketIds.length
+    ? await supabase.from("tasks").select("id, bucket_id, status").in("bucket_id", bucketIds)
+    : { data: [] as { id: string; bucket_id: string; status: ItemStatus }[] };
+
+  const taskIds = (tasksForProgress ?? []).map((task) => task.id);
+
+  const { data: subtasksForProgress } = taskIds.length
+    ? await supabase.from("subtasks").select("task_id, status").in("task_id", taskIds)
+    : { data: [] as { task_id: string; status: ItemStatus }[] };
+
+  const progressByBucket = computeBucketProgressMap(
+    (tasksForProgress ?? []) as { id: string; bucket_id: string; status: ItemStatus }[],
+    (subtasksForProgress ?? []) as { task_id: string; status: ItemStatus }[],
+  );
+
   const currentPath = `/leader/kepanitiaan/${instanceId}`;
   const namaInstance = `${typedInstance.kepanitiaan?.nama} @ ${typedInstance.site?.nama_site}`;
   const deleteAction = deleteInstance.bind(null, instanceId);
@@ -76,21 +95,13 @@ export default async function InstanceDetailPage({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Bucket Kepanitiaan</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          {(buckets ?? []).map((bucket) => (
-            <span key={bucket.id} className="rounded-full border px-3 py-1 text-sm">
-              {bucket.nama_bidang}
-              {bucket.is_budgeting && (
-                <span className="ml-1 text-xs text-muted-foreground">(budgeting)</span>
-              )}
-            </span>
-          ))}
-        </CardContent>
-      </Card>
+      <BucketListSection
+        kepanitiaanSiteId={instanceId}
+        buckets={(buckets ?? []) as BucketSummary[]}
+        progressByBucket={progressByBucket}
+        basePath={`/leader/kepanitiaan/${instanceId}/bucket`}
+        currentPath={currentPath}
+      />
 
       <TimelineSection
         kepanitiaanSiteId={instanceId}

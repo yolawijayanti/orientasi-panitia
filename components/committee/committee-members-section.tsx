@@ -7,9 +7,7 @@ import {
   deleteCommitteeMember,
   updateCommitteeMember,
 } from "@/lib/committee/actions";
-
-const SELECT_CLASSNAME =
-  "h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
+import { NATIVE_SELECT_CLASSNAME } from "@/lib/utils";
 
 export type CommitteeMember = {
   id: string;
@@ -80,7 +78,7 @@ export function CommitteeMembersSection({
                       id={`role-${member.id}`}
                       name="role"
                       defaultValue={member.role}
-                      className={SELECT_CLASSNAME}
+                      className={NATIVE_SELECT_CLASSNAME}
                     >
                       <option value="anggota">Anggota</option>
                       <option value="leader_bidang">Leader Bidang</option>
@@ -93,7 +91,7 @@ export function CommitteeMembersSection({
                         id={`bucket-${member.id}`}
                         name="bucket_id"
                         defaultValue={member.bucket_id ?? buckets[0].id}
-                        className={SELECT_CLASSNAME}
+                        className={NATIVE_SELECT_CLASSNAME}
                       >
                         {buckets.map((bucket) => (
                           <option key={bucket.id} value={bucket.id}>
@@ -128,7 +126,7 @@ export function CommitteeMembersSection({
           </div>
           <div className="flex min-w-32 flex-col gap-1">
             <Label htmlFor="role-baru">Role</Label>
-            <select id="role-baru" name="role" defaultValue="anggota" className={SELECT_CLASSNAME}>
+            <select id="role-baru" name="role" defaultValue="anggota" className={NATIVE_SELECT_CLASSNAME}>
               <option value="anggota">Anggota</option>
               <option value="leader_bidang">Leader Bidang</option>
             </select>
@@ -140,7 +138,7 @@ export function CommitteeMembersSection({
                 id="bucket-baru"
                 name="bucket_id"
                 defaultValue={buckets[0].id}
-                className={SELECT_CLASSNAME}
+                className={NATIVE_SELECT_CLASSNAME}
               >
                 {buckets.map((bucket) => (
                   <option key={bucket.id} value={bucket.id}>

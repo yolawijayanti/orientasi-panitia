@@ -24,8 +24,10 @@ export default async function PanitiaDashboardPage() {
         <Button asChild className="w-fit" variant="outline">
           <Link href="/panitia/timeline">Timeline Pelaksanaan</Link>
         </Button>
+        <Button asChild className="w-fit" variant="outline">
+          <Link href="/panitia/bucket">Bucket Tugas</Link>
+        </Button>
       </div>
-      <p className="text-muted-foreground">Bucket tugas akan diimplementasikan mulai Fase 4.</p>
     </main>
   );
 }
