@@ -3,6 +3,16 @@
 -- di satu instance, "Tugas Saya", dan isolasi RLS `tasks_scoped`/
 -- `subtasks_scoped` dari sisi akun PANITIA -- yang belum pernah benar-benar
 -- dites lewat UI sejak dibuat di Fase 1.
+--
+-- STATUS: SUDAH DIJALANKAN & LOLOS SEMUA (lihat HANDOVER.md section 8/9).
+-- Akun aslinya dibuat sebagai panitia-c@test.local, tapi sempat terkendala
+-- login (root cause: query UPDATE ... WHERE email=... yang dicoba pertama
+-- kali no-op karena baris dengan email itu belum ada -- bukan error, jadi
+-- gejalanya membingungkan). Diganti jadi panitia-e@test.local (INSERT ...
+-- ON CONFLICT, bukan UPDATE) di instance yang sama dengan panitia-c lama.
+-- File ini dibiarkan (bukan dihapus) supaya bisa dipakai ulang kalau perlu
+-- akun test serupa di fase berikutnya -- panitia-e/d masih aktif & terhubung
+-- ke 2 instance berbeda, tidak perlu setup dari nol.
 
 -- =========================================================================
 -- 0. Catatan tentang panitia-a/panitia-b -- BACA DULU sebelum lanjut
@@ -18,12 +28,12 @@
 -- yang SAMA, bukan berbeda.
 --
 -- Supaya isolasi RLS tetap bisa dites tanpa mengganggu setup multi-assignee
--- yang sudah jalan, skrip ini membuat 2 akun test BARU (panitia-c/d) khusus
+-- yang sudah jalan, skrip ini membuat 2 akun test BARU (panitia-e/d) khusus
 -- untuk itu. panitia-a/b dibiarkan seperti sekarang (satu instance, buat
 -- verifikasi multi-assignee).
 
 -- =========================================================================
--- 1. Cari 2 instance kepanitiaan_site yang BEDA untuk panitia-c/d
+-- 1. Cari 2 instance kepanitiaan_site yang BEDA untuk panitia-e/d
 -- =========================================================================
 select ks.id as instance_id, k.nama as kepanitiaan, s.nama_site
 from public.kepanitiaan_site ks
@@ -35,7 +45,7 @@ order by k.nama, s.nama_site;
 -- beda). Catat sebagai <INSTANCE_C_ID> dan <INSTANCE_D_ID>.
 
 -- =========================================================================
--- 2. Buat akun panitia-c@test.local / panitia-d@test.local di Supabase Auth
+-- 2. Buat akun panitia-e@test.local / panitia-d@test.local di Supabase Auth
 -- =========================================================================
 -- Dashboard > Authentication > Users > "Add user" untuk masing-masing
 -- email (password bebas, aktifkan "Auto Confirm User"). Catat UID
@@ -46,19 +56,19 @@ order by k.nama, s.nama_site;
 --    C dan D yang BERBEDA (aman dijalankan ulang)
 -- =========================================================================
 insert into public.users (id, email, role, kepanitiaan_site_id) values
-  ('<PANITIA_C_UID>', 'panitia-c@test.local', 'panitia', '<INSTANCE_C_ID>'),
+  ('<PANITIA_C_UID>', 'panitia-e@test.local', 'panitia', '<INSTANCE_C_ID>'),
   ('<PANITIA_D_UID>', 'panitia-d@test.local', 'panitia', '<INSTANCE_D_ID>')
 on conflict (id) do update
   set role = excluded.role,
       kepanitiaan_site_id = excluded.kepanitiaan_site_id;
 
 -- =========================================================================
--- 4. Tambahkan panitia-c & panitia-d ke Susunan Panitia instance masing-
+-- 4. Tambahkan panitia-e & panitia-d ke Susunan Panitia instance masing-
 --    masing lewat APLIKASI (bukan SQL) -- ini sekaligus jadi tes dropdown
 --    "+ Tambah Anggota" yang baru dibatasi ke akun terdaftar
 -- =========================================================================
 -- a) Login sebagai leader, buka instance C -> tab Susunan Panitia -> buka
---    bidang manapun -> "+ Tambah Anggota" -> pastikan panitia-c@test.local
+--    bidang manapun -> "+ Tambah Anggota" -> pastikan panitia-e@test.local
 --    muncul di dropdown email (bukan lagi kotak ketik bebas) -> isi Nama,
 --    pilih emailnya, Simpan.
 -- b) Ulangi untuk panitia-d di instance D.
@@ -79,14 +89,14 @@ on conflict (id) do update
 --    pastikan sebaliknya: tugas #2 muncul, tugas #1 tidak.
 
 -- =========================================================================
--- 6. Test isolasi RLS tasks_scoped/subtasks_scoped (panitia-c vs panitia-d,
+-- 6. Test isolasi RLS tasks_scoped/subtasks_scoped (panitia-e vs panitia-d,
 --    beda instance) -- INI YANG BELUM PERNAH DITES SEJAK FASE 1
 -- =========================================================================
--- a) Login sebagai panitia-c@test.local -> buka /panitia/workspace -> tab
+-- a) Login sebagai panitia-e@test.local -> buka /panitia/workspace -> tab
 --    Progres & Task Board -> tambah 1 tugas percobaan di bidang manapun,
---    assign ke diri sendiri (panitia-c).
+--    assign ke diri sendiri (panitia-e).
 -- b) Logout, login sebagai panitia-d@test.local -> buka Task Board ->
---    pastikan TIDAK melihat tugas yang baru ditambahkan panitia-c (beda
+--    pastikan TIDAK melihat tugas yang baru ditambahkan panitia-e (beda
 --    instance, harus benar-benar terpisah).
 -- c) Masih sebagai panitia-d, coba akses langsung URL
 --    /panitia/bucket/<uuid-bucket-di-instance-C> (copy UUID bucket dari
@@ -102,4 +112,4 @@ on conflict (id) do update
 --   delete from public.tasks where judul = '<judul tugas percobaan>';
 -- Akun public.users boleh dibiarkan untuk dipakai lagi di verifikasi
 -- fase berikutnya, atau hapus kalau memang sudah tidak perlu:
---   delete from public.users where email in ('panitia-c@test.local', 'panitia-d@test.local');
+--   delete from public.users where email in ('panitia-e@test.local', 'panitia-d@test.local');
