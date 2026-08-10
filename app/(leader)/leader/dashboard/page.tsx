@@ -2,11 +2,14 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/logout-button";
+import { OrphanCheckSection } from "@/components/committee/orphan-check-section";
+import { loadOrphanCommitteeMembers } from "@/lib/committee/orphan-check";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function LeaderDashboardPage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
+  const orphans = await loadOrphanCommitteeMembers(supabase);
 
   return (
     <main className="flex min-h-screen flex-col gap-4 p-8">
@@ -28,6 +31,8 @@ export default async function LeaderDashboardPage() {
       <p className="text-muted-foreground">
         Ringkasan progres lintas kepanitiaan/site akan diimplementasikan di Fase 6.
       </p>
+
+      <OrphanCheckSection orphans={orphans} />
     </main>
   );
 }
