@@ -1,3 +1,6 @@
+import { Download, FileText } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,16 +53,15 @@ export function BudgetSubmissionSection({
         <CardTitle>Budgeting</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           <span className="text-sm font-medium">Template Budgeting</span>
           {template ? (
-            <a
-              href={template.url}
-              download
-              className="text-sm text-primary underline underline-offset-2"
-            >
-              Download Template ({template.name})
-            </a>
+            <Button asChild size="sm" className="w-fit">
+              <a href={template.url} download>
+                <Download className="size-4" />
+                Budgeting Template
+              </a>
+            </Button>
           ) : (
             <p className="text-sm text-muted-foreground">
               Template belum diunggah leader. Hubungi leader untuk mengunggahnya lewat Dashboard
@@ -82,14 +84,12 @@ export function BudgetSubmissionSection({
           </div>
 
           {submission.fileUrl && (
-            <a
-              href={submission.fileUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm text-primary underline underline-offset-2"
-            >
-              Lihat file yang sudah diupload
-            </a>
+            <Button asChild size="sm" variant="outline" className="w-fit">
+              <a href={submission.fileUrl} target="_blank" rel="noreferrer">
+                <FileText className="size-4" />
+                Lihat File Terupload
+              </a>
+            </Button>
           )}
 
           <form action={submitAction} className="flex flex-wrap items-end gap-2">
