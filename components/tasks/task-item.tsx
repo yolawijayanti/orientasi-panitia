@@ -1,3 +1,8 @@
+"use client";
+
+import { useState } from "react";
+import { ChevronDown, ChevronRight, Pencil } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +11,7 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubtaskRow, type Subtask } from "@/components/tasks/subtask-row";
 import { AssigneeSelect, type AssignableMember } from "@/components/tasks/assignee-select";
 import { StatusChoice } from "@/components/tasks/status-choice";
-import { addSubtask, updateTask, deleteTask, type ItemStatus } from "@/lib/tasks/actions";
+import type { ItemStatus } from "@/lib/tasks/actions";
 import { STATUS_BADGE_VARIANT, STATUS_LABEL, formatDeadline } from "@/lib/tasks/format";
 
 export type Task = {
@@ -17,85 +22,116 @@ export type Task = {
   assignee_id: string | null;
 };
 
+export type SubtaskWithActions = {
+  subtask: Subtask;
+  updateAction: (formData: FormData) => Promise<void>;
+  deleteAction: (formData: FormData) => Promise<void>;
+};
+
 export function TaskItem({
   task,
   subtasks,
   members,
-  currentPath,
+  updateAction,
+  deleteAction,
+  addSubtaskAction,
 }: {
   task: Task;
-  subtasks: Subtask[];
+  subtasks: SubtaskWithActions[];
   members: AssignableMember[];
-  currentPath: string;
+  updateAction: (formData: FormData) => Promise<void>;
+  deleteAction: (formData: FormData) => Promise<void>;
+  addSubtaskAction: (formData: FormData) => Promise<void>;
 }) {
-  const updateAction = updateTask.bind(null, task.id, currentPath);
-  const deleteAction = deleteTask.bind(null, task.id, currentPath);
-  const addSubtaskAction = addSubtask.bind(null, task.id, currentPath);
-  const subtaskSelesai = subtasks.filter((subtask) => subtask.status === "selesai").length;
+  const [isEditing, setIsEditing] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  async function handleSave(formData: FormData) {
+    await updateAction(formData);
+    setIsEditing(false);
+  }
+
+  const subtaskSelesai = subtasks.filter((item) => item.subtask.status === "selesai").length;
   const assignee = members.find((member) => member.id === task.assignee_id);
 
   return (
-    <details className="rounded-md border p-3">
-      <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2">
-        <span className="flex flex-wrap items-center gap-2">
+    <div className="rounded-md border p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => setIsOpen((open) => !open)}
+          className="flex flex-1 flex-wrap items-center gap-2 text-left"
+          aria-expanded={isOpen}
+        >
+          {isOpen ? (
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+          )}
           <span className="font-medium">{task.judul}</span>
           <Badge variant={STATUS_BADGE_VARIANT[task.status]}>{STATUS_LABEL[task.status]}</Badge>
           {assignee && <Badge variant="outline">{assignee.nama}</Badge>}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          {formatDeadline(task.deadline)}
-          {subtasks.length > 0 && ` · ${subtaskSelesai}/${subtasks.length} subtugas selesai`}
-        </span>
-      </summary>
-
-      <div className="mt-3 flex flex-col gap-4 border-t pt-3">
-        <div className="flex flex-wrap items-end gap-2">
-          <form action={updateAction} className="flex flex-1 flex-wrap items-end gap-2">
-            <div className="flex min-w-40 flex-1 flex-col gap-1">
-              <Label htmlFor={`tugas-judul-${task.id}`}>Nama Tugas</Label>
-              <Input id={`tugas-judul-${task.id}`} name="judul" defaultValue={task.judul} required />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor={`tugas-deadline-${task.id}`}>Deadline</Label>
-              <Input
-                id={`tugas-deadline-${task.id}`}
-                name="deadline"
-                type="date"
-                defaultValue={task.deadline ?? ""}
-              />
-            </div>
-            <AssigneeSelect
-              members={members}
-              value={task.assignee_id}
-              idPrefix={`tugas-${task.id}`}
-            />
-            <StatusChoice value={task.status} idPrefix={`tugas-${task.id}`} />
-            <Button type="submit" size="sm" variant="secondary">
-              Simpan
-            </Button>
-          </form>
+          <span className="text-xs text-muted-foreground">
+            {formatDeadline(task.deadline)}
+            {subtasks.length > 0 && ` · ${subtaskSelesai}/${subtasks.length} subtugas selesai`}
+          </span>
+        </button>
+        <div className="flex gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+            <Pencil className="size-3.5" />
+            Update Tugas
+          </Button>
           <form action={deleteAction}>
             <ConfirmSubmitButton
               size="sm"
               variant="destructive"
               confirmMessage={`Hapus tugas "${task.judul}"? Subtugas di dalamnya ikut terhapus.`}
             >
-              Hapus Tugas
+              Hapus
             </ConfirmSubmitButton>
           </form>
         </div>
+      </div>
 
-        <div className="flex flex-col gap-2 border-t pt-3">
+      {isEditing && (
+        <form action={handleSave} className="mt-3 flex flex-wrap items-end gap-2 border-t pt-3">
+          <div className="flex min-w-40 flex-1 flex-col gap-1">
+            <Label htmlFor={`tugas-judul-${task.id}`}>Nama Tugas</Label>
+            <Input id={`tugas-judul-${task.id}`} name="judul" defaultValue={task.judul} required />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor={`tugas-deadline-${task.id}`}>Deadline</Label>
+            <Input
+              id={`tugas-deadline-${task.id}`}
+              name="deadline"
+              type="date"
+              defaultValue={task.deadline ?? ""}
+            />
+          </div>
+          <AssigneeSelect members={members} value={task.assignee_id} idPrefix={`tugas-${task.id}`} />
+          <StatusChoice value={task.status} idPrefix={`tugas-${task.id}`} />
+          <Button type="submit" size="sm" variant="secondary">
+            Simpan
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
+            Batal
+          </Button>
+        </form>
+      )}
+
+      {isOpen && (
+        <div className="mt-3 flex flex-col gap-2 border-t pt-3">
           <p className="text-sm font-medium">Subtugas</p>
           {subtasks.length === 0 && (
             <p className="text-sm text-muted-foreground">Belum ada subtugas.</p>
           )}
-          {subtasks.map((subtask) => (
+          {subtasks.map(({ subtask, updateAction: update, deleteAction: remove }) => (
             <SubtaskRow
               key={subtask.id}
               subtask={subtask}
               members={members}
-              currentPath={currentPath}
+              updateAction={update}
+              deleteAction={remove}
             />
           ))}
 
@@ -114,7 +150,7 @@ export function TaskItem({
             </Button>
           </form>
         </div>
-      </div>
-    </details>
+      )}
+    </div>
   );
 }

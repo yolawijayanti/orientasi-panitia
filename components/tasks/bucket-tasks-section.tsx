@@ -6,7 +6,14 @@ import { ProgressBar } from "@/components/buckets/progress-bar";
 import { TaskItem, type Task } from "@/components/tasks/task-item";
 import type { Subtask } from "@/components/tasks/subtask-row";
 import { AssigneeSelect, type AssignableMember } from "@/components/tasks/assignee-select";
-import { addTask } from "@/lib/tasks/actions";
+import {
+  addTask,
+  addSubtask,
+  updateTask,
+  deleteTask,
+  updateSubtask,
+  deleteSubtask,
+} from "@/lib/tasks/actions";
 import { computeProgress } from "@/lib/tasks/progress";
 
 export type { Task, Subtask, AssignableMember };
@@ -45,9 +52,9 @@ export function BucketTasksSection({
 
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Progress bucket</span>
+            <span>Progress bidang ini</span>
             <span>
-              {progress.done}/{progress.total} tugas & subtugas selesai
+              {progress.done}/{progress.total} tugas &amp; subtugas selesai
             </span>
           </div>
           <ProgressBar percent={progress.percent} />
@@ -61,9 +68,15 @@ export function BucketTasksSection({
             <TaskItem
               key={task.id}
               task={task}
-              subtasks={subtasksByTask[task.id] ?? []}
               members={members}
-              currentPath={currentPath}
+              updateAction={updateTask.bind(null, task.id, currentPath)}
+              deleteAction={deleteTask.bind(null, task.id, currentPath)}
+              addSubtaskAction={addSubtask.bind(null, task.id, currentPath)}
+              subtasks={(subtasksByTask[task.id] ?? []).map((subtask) => ({
+                subtask,
+                updateAction: updateSubtask.bind(null, subtask.id, currentPath),
+                deleteAction: deleteSubtask.bind(null, subtask.id, currentPath),
+              }))}
             />
           ))}
         </div>

@@ -3,10 +3,15 @@ import type { ItemStatus } from "@/lib/tasks/actions";
 import { STATUS_CHIP_CLASSNAME, STATUS_LABEL, STATUS_ORDER } from "@/lib/tasks/format";
 
 /**
- * Single-choice status sebagai radio chip, bukan <select> -- ketiga pilihan
- * kelihatan sekaligus tanpa perlu buka dropdown, dan yang aktif langsung
- * kebaca dari warnanya. Tetap radio HTML biasa (peer + peer-checked), jadi
- * masih nol client-side JS seperti sisa section tugas.
+ * Single-choice status sebagai radio chip: ketiga pilihan kelihatan sekaligus
+ * tanpa buka dropdown, dan yang aktif langsung kebaca dari warnanya. Tetap
+ * radio HTML biasa (peer + peer-checked), jadi nol client-side JS.
+ *
+ * Sengaja pakai <div>, BUKAN <fieldset>/<legend>: fieldset punya aturan
+ * layout sendiri (min-inline-size: min-content, dan legend dirender di luar
+ * flow normal) yang bikin dia tidak mau menyusut di dalam baris flex --
+ * akibatnya elemen setelahnya (tombol Simpan) bisa terdorong keluar area
+ * yang bisa diklik.
  */
 export function StatusChoice({
   name = "status",
@@ -18,20 +23,20 @@ export function StatusChoice({
   idPrefix: string;
 }) {
   return (
-    <fieldset className="flex flex-col gap-1">
-      <legend className="mb-1 text-sm font-medium">Status</legend>
+    <div className="flex flex-col gap-1">
+      <span className="text-sm font-medium">Status</span>
       <div className="flex flex-wrap gap-1">
         {STATUS_ORDER.map((status) => {
           const id = `${idPrefix}-status-${status}`;
           return (
-            <div key={status}>
+            <div key={status} className="relative">
               <input
                 type="radio"
                 id={id}
                 name={name}
                 value={status}
                 defaultChecked={status === value}
-                className="peer sr-only"
+                className="peer absolute size-0 opacity-0"
               />
               <label
                 htmlFor={id}
@@ -48,6 +53,6 @@ export function StatusChoice({
           );
         })}
       </div>
-    </fieldset>
+    </div>
   );
 }

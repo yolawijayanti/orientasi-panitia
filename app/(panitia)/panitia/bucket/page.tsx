@@ -1,7 +1,7 @@
 import { LogoutButton } from "@/components/logout-button";
 import { PageNav } from "@/components/page-nav";
+import { AccordionSection } from "@/components/ui/accordion-section";
 import { BucketListSection, type BucketSummary } from "@/components/buckets/bucket-list-section";
-import { MasterProgress } from "@/components/buckets/master-progress";
 import { loadBucketBoardData } from "@/lib/buckets/board-data";
 import { createClient } from "@/lib/supabase/server";
 
@@ -62,26 +62,26 @@ export default async function BucketListPanitiaPage({
         <div>
           <PageNav homeHref="/panitia/dashboard" />
           <h1 className="mt-1 text-xl font-semibold">
-            Bucket Tugas — {typedInstance?.kepanitiaan?.nama} @ {typedInstance?.site?.nama_site}
+            Task Board — {typedInstance?.kepanitiaan?.nama} @ {typedInstance?.site?.nama_site}
           </h1>
         </div>
         <LogoutButton />
       </div>
-      <MasterProgress
-        progress={board.masterProgress}
-        totalBucket={bucketRows.length}
-        bucketSelesai={board.bucketSelesai}
-      />
-      <BucketListSection
-        kepanitiaanSiteId={kepanitiaanSiteId}
-        buckets={bucketRows}
-        tasksByBucket={board.tasksByBucket}
-        progressByBucket={board.progressByBucket}
-        memberNameById={board.memberNameById}
-        basePath="/panitia/bucket"
-        currentPath="/panitia/bucket"
-        error={error}
-      />
+
+      <AccordionSection title="Progres Kepanitiaan & Task Board" defaultOpen>
+        <BucketListSection
+          kepanitiaanSiteId={kepanitiaanSiteId}
+          buckets={bucketRows}
+          tasksByBucket={board.tasksByBucket}
+          progressByBucket={board.progressByBucket}
+          memberNameById={board.memberNameById}
+          masterProgress={board.masterProgress}
+          bucketSelesai={board.bucketSelesai}
+          basePath="/panitia/bucket"
+          currentPath="/panitia/bucket"
+          error={error}
+        />
+      </AccordionSection>
     </main>
   );
 }

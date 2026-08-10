@@ -20,7 +20,9 @@ export function TimelineBody({
   items: MilestoneWithActions[];
   todayIso: string;
 }) {
-  const [view, setView] = useState<"vertikal" | "mingguan">("vertikal");
+  // Default ke Gantt (tab "Mingguan") -- itu tampilan yang paling sering dipakai
+  // saat meninjau timeline; tab Vertikal tetap ada untuk edit per milestone.
+  const [view, setView] = useState<"vertikal" | "mingguan">("mingguan");
 
   if (items.length === 0) {
     return <p className="text-sm text-muted-foreground">Belum ada milestone.</p>;

@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 
 import { PageNav } from "@/components/page-nav";
+import { AccordionSection } from "@/components/ui/accordion-section";
 import { CommitteeMembersSection, type CommitteeMember } from "@/components/committee/committee-members-section";
 import { TimelineSection, type Milestone } from "@/components/timeline/timeline-section";
 import { BucketListSection, type BucketSummary } from "@/components/buckets/bucket-list-section";
-import { MasterProgress } from "@/components/buckets/master-progress";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { deleteInstance } from "@/lib/kepanitiaan/actions";
 import { loadBucketBoardData } from "@/lib/buckets/board-data";
@@ -79,36 +79,37 @@ export default async function InstanceDetailPage({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <MasterProgress
-        progress={board.masterProgress}
-        totalBucket={bucketRows.length}
-        bucketSelesai={board.bucketSelesai}
-      />
+      <AccordionSection title="Progres Kepanitiaan & Task Board" defaultOpen>
+        <BucketListSection
+          kepanitiaanSiteId={instanceId}
+          buckets={bucketRows}
+          tasksByBucket={board.tasksByBucket}
+          progressByBucket={board.progressByBucket}
+          memberNameById={board.memberNameById}
+          masterProgress={board.masterProgress}
+          bucketSelesai={board.bucketSelesai}
+          basePath={`/leader/kepanitiaan/${instanceId}/bucket`}
+          currentPath={currentPath}
+        />
+      </AccordionSection>
 
-      <BucketListSection
-        kepanitiaanSiteId={instanceId}
-        buckets={bucketRows}
-        tasksByBucket={board.tasksByBucket}
-        progressByBucket={board.progressByBucket}
-        memberNameById={board.memberNameById}
-        basePath={`/leader/kepanitiaan/${instanceId}/bucket`}
-        currentPath={currentPath}
-      />
+      <AccordionSection title="Timeline Pelaksanaan">
+        <TimelineSection
+          kepanitiaanSiteId={instanceId}
+          milestones={(milestones ?? []) as Milestone[]}
+          currentPath={currentPath}
+        />
+      </AccordionSection>
 
-      <TimelineSection
-        kepanitiaanSiteId={instanceId}
-        milestones={(milestones ?? []) as Milestone[]}
-        currentPath={currentPath}
-      />
+      <AccordionSection title="Susunan Panitia">
+        <CommitteeMembersSection
+          kepanitiaanSiteId={instanceId}
+          members={(members ?? []) as CommitteeMember[]}
+          buckets={(buckets ?? []).map(({ id, nama_bidang }) => ({ id, nama_bidang }))}
+          currentPath={currentPath}
+        />
+      </AccordionSection>
 
-      {/* error sudah ditampilkan di header halaman ini, jadi tidak dioper lagi
-          ke section supaya tidak muncul dobel. */}
-      <CommitteeMembersSection
-        kepanitiaanSiteId={instanceId}
-        members={(members ?? []) as CommitteeMember[]}
-        buckets={(buckets ?? []).map(({ id, nama_bidang }) => ({ id, nama_bidang }))}
-        currentPath={currentPath}
-      />
     </main>
   );
 }

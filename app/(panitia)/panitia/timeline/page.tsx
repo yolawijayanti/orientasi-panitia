@@ -1,5 +1,6 @@
 import { LogoutButton } from "@/components/logout-button";
 import { PageNav } from "@/components/page-nav";
+import { AccordionSection } from "@/components/ui/accordion-section";
 import { TimelineSection, type Milestone } from "@/components/timeline/timeline-section";
 import { createClient } from "@/lib/supabase/server";
 
@@ -62,12 +63,14 @@ export default async function TimelinePanitiaPage({
         </div>
         <LogoutButton />
       </div>
-      <TimelineSection
-        kepanitiaanSiteId={kepanitiaanSiteId}
-        milestones={(milestones ?? []) as Milestone[]}
-        currentPath="/panitia/timeline"
-        error={error}
-      />
+      <AccordionSection title="Timeline Pelaksanaan" defaultOpen>
+        <TimelineSection
+          kepanitiaanSiteId={kepanitiaanSiteId}
+          milestones={(milestones ?? []) as Milestone[]}
+          currentPath="/panitia/timeline"
+          error={error}
+        />
+      </AccordionSection>
     </main>
   );
 }

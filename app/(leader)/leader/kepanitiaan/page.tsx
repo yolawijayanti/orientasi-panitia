@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { LogoutButton } from "@/components/logout-button";
 import { PageNav } from "@/components/page-nav";
+import { LogoPlaceholder } from "@/components/kepanitiaan/logo-placeholder";
 import { deleteKepanitiaan, renameKepanitiaan } from "@/lib/kepanitiaan/actions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -78,6 +79,7 @@ export default async function KepanitiaanListPage({
               <CardHeader>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <form action={renameAction} className="flex flex-wrap items-center gap-2">
+                    <LogoPlaceholder nama={group.nama} />
                     <Input
                       name="nama"
                       defaultValue={group.nama}

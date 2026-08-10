@@ -2,9 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CommitteeMemberRow } from "@/components/committee/committee-member-row";
-import { addCommitteeMember } from "@/lib/committee/actions";
+import {
+  addCommitteeMember,
+  updateCommitteeMember,
+  deleteCommitteeMember,
+} from "@/lib/committee/actions";
 import { NATIVE_SELECT_CLASSNAME } from "@/lib/utils";
 
 export type CommitteeMember = {
@@ -56,11 +59,7 @@ export function CommitteeMembersSection({
   );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Susunan Panitia</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         {members.length === 0 && (
@@ -81,7 +80,8 @@ export function CommitteeMembersSection({
                   key={member.id}
                   member={member}
                   buckets={buckets}
-                  currentPath={currentPath}
+                  updateAction={updateCommitteeMember.bind(null, member.id, currentPath)}
+                  deleteAction={deleteCommitteeMember.bind(null, member.id, currentPath)}
                 />
               ))
             )}
@@ -103,7 +103,8 @@ export function CommitteeMembersSection({
                 key={member.id}
                 member={member}
                 buckets={buckets}
-                currentPath={currentPath}
+                updateAction={updateCommitteeMember.bind(null, member.id, currentPath)}
+                deleteAction={deleteCommitteeMember.bind(null, member.id, currentPath)}
               />
             ))}
           </div>
@@ -127,7 +128,7 @@ export function CommitteeMembersSection({
           </div>
           {buckets.length > 0 && (
             <div className="flex min-w-40 flex-col gap-1">
-              <Label htmlFor="bucket-baru">Bidang</Label>
+              <Label htmlFor="bucket-baru">Bidang Tugas</Label>
               <select
                 id="bucket-baru"
                 name="bucket_id"
@@ -146,7 +147,6 @@ export function CommitteeMembersSection({
             + Tambah Anggota
           </Button>
         </form>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

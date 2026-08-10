@@ -1,5 +1,6 @@
 import { LogoutButton } from "@/components/logout-button";
 import { PageNav } from "@/components/page-nav";
+import { AccordionSection } from "@/components/ui/accordion-section";
 import { CommitteeMembersSection, type CommitteeMember } from "@/components/committee/committee-members-section";
 import { createClient } from "@/lib/supabase/server";
 
@@ -68,13 +69,15 @@ export default async function SusunanPanitiaPage({
         </div>
         <LogoutButton />
       </div>
-      <CommitteeMembersSection
-        kepanitiaanSiteId={kepanitiaanSiteId}
-        members={(members ?? []) as CommitteeMember[]}
-        buckets={buckets ?? []}
-        currentPath="/panitia/susunan"
-        error={error}
-      />
+      <AccordionSection title="Susunan Panitia" defaultOpen>
+        <CommitteeMembersSection
+          kepanitiaanSiteId={kepanitiaanSiteId}
+          members={(members ?? []) as CommitteeMember[]}
+          buckets={buckets ?? []}
+          currentPath="/panitia/susunan"
+          error={error}
+        />
+      </AccordionSection>
     </main>
   );
 }
