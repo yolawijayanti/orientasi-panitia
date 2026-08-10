@@ -16,14 +16,16 @@ function withError(redirectTo: string, message: string): never {
 }
 
 /**
- * bucket_id cuma relevan untuk role leader_bidang. Dropdown-nya sengaja
- * selalu ditampilkan di UI (tidak disembunyikan lewat JS tergantung role
- * yang dipilih) supaya section ini tetap tidak butuh client-side JS, tapi
- * nilainya di-null-kan di sini kalau role bukan leader_bidang -- supaya
- * tidak ada bucket_id "nyangkut" dari role sebelumnya.
+ * bucket_id berlaku untuk SEMUA anggota, bukan cuma leader_bidang.
+ *
+ * Ini membalik keputusan Fase 3 (yang me-null-kan bucket_id kalau role bukan
+ * leader_bidang): sejak susunan panitia dikelompokkan per bidang, anggota
+ * biasa juga harus punya bidang -- kalau tidak, semua anggota jatuh ke grup
+ * "Tanpa Bidang" dan pengelompokannya jadi tidak ada gunanya. Role sekarang
+ * cuma menentukan urutan di dalam grup (leader_bidang selalu paling atas),
+ * bukan boleh-tidaknya punya bidang.
  */
-function parseBucketId(role: CommitteeRole, value: FormDataEntryValue | null): string | null {
-  if (role !== "leader_bidang") return null;
+function parseBucketId(value: FormDataEntryValue | null): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
@@ -45,7 +47,7 @@ export async function addCommitteeMember(
     nama: (nama as string).trim(),
     email: typeof email === "string" && email.trim() ? email.trim() : null,
     role,
-    bucket_id: parseBucketId(role, formData.get("bucket_id")),
+    bucket_id: parseBucketId(formData.get("bucket_id")),
   });
 
   if (error) {
@@ -74,7 +76,7 @@ export async function updateCommitteeMember(
       nama: (nama as string).trim(),
       email: typeof email === "string" && email.trim() ? email.trim() : null,
       role,
-      bucket_id: parseBucketId(role, formData.get("bucket_id")),
+      bucket_id: parseBucketId(formData.get("bucket_id")),
     })
     .eq("id", memberId);
 

@@ -1,15 +1,12 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CommitteeMemberRow } from "@/components/committee/committee-member-row";
+import { AddMemberRow } from "@/components/committee/add-member-row";
 import {
   addCommitteeMember,
-  deleteCommitteeMember,
   updateCommitteeMember,
+  deleteCommitteeMember,
 } from "@/lib/committee/actions";
-
-const SELECT_CLASSNAME =
-  "h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
+import type { CandidateAccount } from "@/lib/committee/candidate-accounts";
 
 export type CommitteeMember = {
   id: string;
@@ -24,137 +21,113 @@ export type Bucket = {
   nama_bidang: string;
 };
 
+/** Leader bidang selalu di atas; sisanya menjaga urutan input (query sudah order by created_at). */
+function sortLeaderFirst(members: CommitteeMember[]): CommitteeMember[] {
+  return [...members].sort((a, b) => {
+    if (a.role === b.role) return 0;
+    return a.role === "leader_bidang" ? -1 : 1;
+  });
+}
+
 export function CommitteeMembersSection({
   kepanitiaanSiteId,
   members,
   buckets,
+  candidateAccounts,
   currentPath,
   error,
 }: {
   kepanitiaanSiteId: string;
   members: CommitteeMember[];
   buckets: Bucket[];
+  candidateAccounts: CandidateAccount[];
   currentPath: string;
   error?: string;
 }) {
-  const addAction = addCommitteeMember.bind(null, kepanitiaanSiteId, currentPath);
+  const groups = buckets.map((bucket) => ({
+    bucket,
+    members: sortLeaderFirst(members.filter((member) => member.bucket_id === bucket.id)),
+  }));
+
+  // Anggota lama yang bucket_id-nya masih null (dibuat sebelum bidang jadi wajib
+  // untuk semua role) tetap ditampilkan supaya tidak "hilang" dari halaman.
+  const bucketIds = new Set(buckets.map((bucket) => bucket.id));
+  const tanpaBidang = sortLeaderFirst(
+    members.filter((member) => !member.bucket_id || !bucketIds.has(member.bucket_id)),
+  );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Susunan Panitia</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        {error && <p className="text-sm text-destructive">{error}</p>}
+    <div className="flex flex-col gap-6">
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <div className="flex flex-col gap-3">
-          {members.length === 0 && (
-            <p className="text-sm text-muted-foreground">Belum ada anggota panitia.</p>
-          )}
-          {members.map((member) => {
-            const updateAction = updateCommitteeMember.bind(null, member.id, currentPath);
-            const deleteAction = deleteCommitteeMember.bind(null, member.id, currentPath);
+      {members.length === 0 && (
+        <p className="text-sm text-muted-foreground">Belum ada anggota panitia.</p>
+      )}
 
-            return (
-              <div
-                key={member.id}
-                className="flex flex-wrap items-end gap-2 rounded-md border p-3"
-              >
-                <form action={updateAction} className="flex flex-1 flex-wrap items-end gap-2">
-                  <div className="flex min-w-32 flex-1 flex-col gap-1">
-                    <Label htmlFor={`nama-${member.id}`}>Nama</Label>
-                    <Input id={`nama-${member.id}`} name="nama" defaultValue={member.nama} required />
-                  </div>
-                  <div className="flex min-w-40 flex-1 flex-col gap-1">
-                    <Label htmlFor={`email-${member.id}`}>Email</Label>
-                    <Input
-                      id={`email-${member.id}`}
-                      name="email"
-                      type="email"
-                      defaultValue={member.email ?? ""}
-                    />
-                  </div>
-                  <div className="flex min-w-32 flex-col gap-1">
-                    <Label htmlFor={`role-${member.id}`}>Role</Label>
-                    <select
-                      id={`role-${member.id}`}
-                      name="role"
-                      defaultValue={member.role}
-                      className={SELECT_CLASSNAME}
-                    >
-                      <option value="anggota">Anggota</option>
-                      <option value="leader_bidang">Leader Bidang</option>
-                    </select>
-                  </div>
-                  {buckets.length > 0 && (
-                    <div className="flex min-w-40 flex-col gap-1">
-                      <Label htmlFor={`bucket-${member.id}`}>Bidang</Label>
-                      <select
-                        id={`bucket-${member.id}`}
-                        name="bucket_id"
-                        defaultValue={member.bucket_id ?? buckets[0].id}
-                        className={SELECT_CLASSNAME}
-                      >
-                        {buckets.map((bucket) => (
-                          <option key={bucket.id} value={bucket.id}>
-                            {bucket.nama_bidang}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  <Button type="submit" size="sm" variant="secondary">
-                    Simpan
-                  </Button>
-                </form>
-                <form action={deleteAction}>
-                  <Button type="submit" size="sm" variant="destructive">
-                    Hapus
-                  </Button>
-                </form>
-              </div>
-            );
-          })}
+      {/*
+       * Tombol "+ Tambah Anggota" DI DALAM tiap kartu bidang (AddMemberRow),
+       * bukan satu form global di bawah semua kartu -- ini yang bikin bidang
+       * kosong sebelumnya kelihatan tidak punya cara ditambahi (leader harus
+       * scroll ke bawah lalu ingat-ingat pilih bidang yang benar dari
+       * dropdown, yang gampang salah pencet atau lupa diubah dari default).
+       * bucket_id sekarang dikirim lewat hidden input di AddMemberRow, jadi
+       * tidak ada langkah pilih-bidang yang bisa salah sama sekali.
+       */}
+      {groups.map(({ bucket, members: anggotaBidang }) => (
+        <div
+          key={bucket.id}
+          className="flex flex-col gap-2 overflow-hidden rounded-lg border-2 border-l-4 border-l-primary"
+        >
+          <div className="flex items-center gap-2 border-b bg-muted/60 px-4 py-2.5">
+            <h3 className="text-base font-semibold">{bucket.nama_bidang}</h3>
+            <Badge variant="muted">{anggotaBidang.length} orang</Badge>
+          </div>
+          <div className="flex flex-col gap-2 px-4 pb-4">
+            {anggotaBidang.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Belum ada anggota di bidang ini.</p>
+            ) : (
+              anggotaBidang.map((member) => (
+                <CommitteeMemberRow
+                  key={member.id}
+                  member={member}
+                  buckets={buckets}
+                  updateAction={updateCommitteeMember.bind(null, member.id, currentPath)}
+                  deleteAction={deleteCommitteeMember.bind(null, member.id, currentPath)}
+                />
+              ))
+            )}
+            <AddMemberRow
+              bucketId={bucket.id}
+              candidateAccounts={candidateAccounts}
+              addAction={addCommitteeMember.bind(null, kepanitiaanSiteId, currentPath)}
+            />
+          </div>
         </div>
+      ))}
 
-        <form action={addAction} className="flex flex-wrap items-end gap-2 border-t pt-4">
-          <div className="flex min-w-32 flex-1 flex-col gap-1">
-            <Label htmlFor="nama-baru">Nama</Label>
-            <Input id="nama-baru" name="nama" required />
+      {tanpaBidang.length > 0 && (
+        <div className="flex flex-col gap-2 overflow-hidden rounded-lg border-2 border-l-4 border-l-muted-foreground">
+          <div className="flex items-center gap-2 border-b bg-muted/60 px-4 py-2.5">
+            <h3 className="text-base font-semibold">Tanpa Bidang</h3>
+            <Badge variant="outline">{tanpaBidang.length} orang</Badge>
           </div>
-          <div className="flex min-w-40 flex-1 flex-col gap-1">
-            <Label htmlFor="email-baru">Email</Label>
-            <Input id="email-baru" name="email" type="email" />
+          <div className="flex flex-col gap-2 px-4 pb-4">
+            <p className="text-sm text-muted-foreground">
+              Anggota di bawah ini belum punya bidang. Klik Edit, pilih bidangnya, lalu Simpan
+              supaya masuk ke kelompok yang benar.
+            </p>
+            {tanpaBidang.map((member) => (
+              <CommitteeMemberRow
+                key={member.id}
+                member={member}
+                buckets={buckets}
+                updateAction={updateCommitteeMember.bind(null, member.id, currentPath)}
+                deleteAction={deleteCommitteeMember.bind(null, member.id, currentPath)}
+              />
+            ))}
           </div>
-          <div className="flex min-w-32 flex-col gap-1">
-            <Label htmlFor="role-baru">Role</Label>
-            <select id="role-baru" name="role" defaultValue="anggota" className={SELECT_CLASSNAME}>
-              <option value="anggota">Anggota</option>
-              <option value="leader_bidang">Leader Bidang</option>
-            </select>
-          </div>
-          {buckets.length > 0 && (
-            <div className="flex min-w-40 flex-col gap-1">
-              <Label htmlFor="bucket-baru">Bidang</Label>
-              <select
-                id="bucket-baru"
-                name="bucket_id"
-                defaultValue={buckets[0].id}
-                className={SELECT_CLASSNAME}
-              >
-                {buckets.map((bucket) => (
-                  <option key={bucket.id} value={bucket.id}>
-                    {bucket.nama_bidang}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          <Button type="submit" size="sm">
-            + Tambah Anggota
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </div>
   );
 }

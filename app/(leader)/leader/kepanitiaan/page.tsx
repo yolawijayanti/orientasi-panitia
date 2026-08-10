@@ -2,17 +2,18 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { LogoutButton } from "@/components/logout-button";
+import { PageNav } from "@/components/page-nav";
+import { KepanitiaanHeader } from "@/components/kepanitiaan/kepanitiaan-header";
 import { deleteKepanitiaan, renameKepanitiaan } from "@/lib/kepanitiaan/actions";
+import { uploadKepanitiaanLogo, removeKepanitiaanLogo } from "@/lib/kepanitiaan/logo-actions";
 import { createClient } from "@/lib/supabase/server";
 
 const CURRENT_PATH = "/leader/kepanitiaan";
 
 type InstanceRow = {
   id: string;
-  kepanitiaan: { id: string; nama: string } | null;
+  kepanitiaan: { id: string; nama: string; logo_url: string | null } | null;
   site: { id: string; nama_site: string } | null;
 };
 
@@ -25,28 +26,34 @@ export default async function KepanitiaanListPage({
   const supabase = await createClient();
   const { data } = await supabase
     .from("kepanitiaan_site")
-    .select("id, kepanitiaan(id, nama), site:sites(id, nama_site)")
+    .select("id, kepanitiaan(id, nama, logo_url), site:sites(id, nama_site)")
     .order("id");
 
   const instances = (data ?? []) as unknown as InstanceRow[];
 
-  const grouped = new Map<string, { nama: string; instances: InstanceRow[] }>();
+  const grouped = new Map<string, { nama: string; logoUrl: string | null; instances: InstanceRow[] }>();
   for (const instance of instances) {
     if (!instance.kepanitiaan) continue;
     const key = instance.kepanitiaan.id;
     if (!grouped.has(key)) {
-      grouped.set(key, { nama: instance.kepanitiaan.nama, instances: [] });
+      grouped.set(key, {
+        nama: instance.kepanitiaan.nama,
+        logoUrl: instance.kepanitiaan.logo_url,
+        instances: [],
+      });
     }
     grouped.get(key)!.instances.push(instance);
   }
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">Manajemen Kepanitiaan</h1>
+          <PageNav homeHref="/leader/dashboard" />
+          <h1 className="mt-1 text-xl font-semibold">Manajemen Kepanitiaan</h1>
           <p className="text-sm text-muted-foreground">
-            Setiap kepanitiaan bisa berjalan di beberapa site sekaligus.
+            Pilih salah satu site di bawah untuk membuka Timeline, Bucket Tugas, dan Susunan
+            Panitia instance tersebut.
           </p>
         </div>
         <div className="flex gap-2">
@@ -73,29 +80,15 @@ export default async function KepanitiaanListPage({
           return (
             <Card key={id}>
               <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <form action={renameAction} className="flex flex-wrap items-center gap-2">
-                    <Input
-                      name="nama"
-                      defaultValue={group.nama}
-                      aria-label="Nama kepanitiaan"
-                      className="h-8 w-56 font-semibold"
-                      required
-                    />
-                    <Button type="submit" size="sm" variant="secondary">
-                      Simpan Nama
-                    </Button>
-                  </form>
-                  <form action={deleteAction}>
-                    <ConfirmSubmitButton
-                      size="sm"
-                      variant="destructive"
-                      confirmMessage={`Hapus kepanitiaan "${group.nama}" beserta ${group.instances.length} instance site-nya? Semua susunan panitia, bucket, dan tugas di dalamnya ikut terhapus permanen.`}
-                    >
-                      Hapus Kepanitiaan
-                    </ConfirmSubmitButton>
-                  </form>
-                </div>
+                <KepanitiaanHeader
+                  nama={group.nama}
+                  logoUrl={group.logoUrl}
+                  jumlahInstance={group.instances.length}
+                  renameAction={renameAction}
+                  deleteAction={deleteAction}
+                  uploadLogoAction={uploadKepanitiaanLogo.bind(null, id, CURRENT_PATH)}
+                  removeLogoAction={removeKepanitiaanLogo.bind(null, id, CURRENT_PATH)}
+                />
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
                 {group.instances.map((instance) => (
