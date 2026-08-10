@@ -5,21 +5,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProgressBar } from "@/components/buckets/progress-bar";
 import { TaskItem, type Task } from "@/components/tasks/task-item";
 import type { Subtask } from "@/components/tasks/subtask-row";
+import { AssigneeSelect, type AssignableMember } from "@/components/tasks/assignee-select";
 import { addTask } from "@/lib/tasks/actions";
 import { computeProgress } from "@/lib/tasks/progress";
 
-export type { Task, Subtask };
+export type { Task, Subtask, AssignableMember };
 
 export function BucketTasksSection({
   bucketId,
   tasks,
   subtasksByTask,
+  members,
   currentPath,
   error,
 }: {
   bucketId: string;
   tasks: Task[];
   subtasksByTask: Record<string, Subtask[]>;
+  members: AssignableMember[];
   currentPath: string;
   error?: string;
 }) {
@@ -59,6 +62,7 @@ export function BucketTasksSection({
               key={task.id}
               task={task}
               subtasks={subtasksByTask[task.id] ?? []}
+              members={members}
               currentPath={currentPath}
             />
           ))}
@@ -73,6 +77,7 @@ export function BucketTasksSection({
             <Label htmlFor="tugas-deadline-baru">Deadline</Label>
             <Input id="tugas-deadline-baru" name="deadline" type="date" />
           </div>
+          <AssigneeSelect members={members} value={null} idPrefix="tugas-baru" />
           <Button type="submit" size="sm">
             + Tambah Tugas
           </Button>

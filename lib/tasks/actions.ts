@@ -19,6 +19,11 @@ function parseDeadline(value: FormDataEntryValue | null): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+/** "" = sengaja tidak di-assign ke siapa-siapa (opsi "- Belum di-assign -" di UI). */
+function parseAssigneeId(value: FormDataEntryValue | null): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 export async function addTask(bucketId: string, redirectTo: string, formData: FormData) {
   const judul = formData.get("judul");
   if (typeof judul !== "string" || !judul.trim()) {
@@ -30,6 +35,7 @@ export async function addTask(bucketId: string, redirectTo: string, formData: Fo
     bucket_id: bucketId,
     judul: (judul as string).trim(),
     deadline: parseDeadline(formData.get("deadline")),
+    assignee_id: parseAssigneeId(formData.get("assignee_id")),
   });
 
   if (error) {
@@ -52,6 +58,7 @@ export async function updateTask(taskId: string, redirectTo: string, formData: F
       judul: (judul as string).trim(),
       deadline: parseDeadline(formData.get("deadline")),
       status: parseStatus(formData.get("status")),
+      assignee_id: parseAssigneeId(formData.get("assignee_id")),
     })
     .eq("id", taskId);
 
@@ -84,6 +91,7 @@ export async function addSubtask(taskId: string, redirectTo: string, formData: F
     task_id: taskId,
     judul: (judul as string).trim(),
     deadline: parseDeadline(formData.get("deadline")),
+    assignee_id: parseAssigneeId(formData.get("assignee_id")),
   });
 
   if (error) {
@@ -106,6 +114,7 @@ export async function updateSubtask(subtaskId: string, redirectTo: string, formD
       judul: (judul as string).trim(),
       deadline: parseDeadline(formData.get("deadline")),
       status: parseStatus(formData.get("status")),
+      assignee_id: parseAssigneeId(formData.get("assignee_id")),
     })
     .eq("id", subtaskId);
 

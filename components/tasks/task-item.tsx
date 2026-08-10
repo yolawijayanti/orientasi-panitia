@@ -4,30 +4,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubtaskRow, type Subtask } from "@/components/tasks/subtask-row";
+import { AssigneeSelect, type AssignableMember } from "@/components/tasks/assignee-select";
+import { StatusChoice } from "@/components/tasks/status-choice";
 import { addSubtask, updateTask, deleteTask, type ItemStatus } from "@/lib/tasks/actions";
 import { STATUS_BADGE_VARIANT, STATUS_LABEL, formatDeadline } from "@/lib/tasks/format";
-import { NATIVE_SELECT_CLASSNAME } from "@/lib/utils";
 
 export type Task = {
   id: string;
   judul: string;
   deadline: string | null;
   status: ItemStatus;
+  assignee_id: string | null;
 };
 
 export function TaskItem({
   task,
   subtasks,
+  members,
   currentPath,
 }: {
   task: Task;
   subtasks: Subtask[];
+  members: AssignableMember[];
   currentPath: string;
 }) {
   const updateAction = updateTask.bind(null, task.id, currentPath);
   const deleteAction = deleteTask.bind(null, task.id, currentPath);
   const addSubtaskAction = addSubtask.bind(null, task.id, currentPath);
   const subtaskSelesai = subtasks.filter((subtask) => subtask.status === "selesai").length;
+  const assignee = members.find((member) => member.id === task.assignee_id);
 
   return (
     <details className="rounded-md border p-3">
@@ -35,6 +40,7 @@ export function TaskItem({
         <span className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{task.judul}</span>
           <Badge variant={STATUS_BADGE_VARIANT[task.status]}>{STATUS_LABEL[task.status]}</Badge>
+          {assignee && <Badge variant="outline">{assignee.nama}</Badge>}
         </span>
         <span className="text-xs text-muted-foreground">
           {formatDeadline(task.deadline)}
@@ -58,19 +64,12 @@ export function TaskItem({
                 defaultValue={task.deadline ?? ""}
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor={`tugas-status-${task.id}`}>Status</Label>
-              <select
-                id={`tugas-status-${task.id}`}
-                name="status"
-                defaultValue={task.status}
-                className={NATIVE_SELECT_CLASSNAME}
-              >
-                <option value="belum">Belum</option>
-                <option value="proses">Proses</option>
-                <option value="selesai">Selesai</option>
-              </select>
-            </div>
+            <AssigneeSelect
+              members={members}
+              value={task.assignee_id}
+              idPrefix={`tugas-${task.id}`}
+            />
+            <StatusChoice value={task.status} idPrefix={`tugas-${task.id}`} />
             <Button type="submit" size="sm" variant="secondary">
               Simpan
             </Button>
@@ -92,7 +91,12 @@ export function TaskItem({
             <p className="text-sm text-muted-foreground">Belum ada subtugas.</p>
           )}
           {subtasks.map((subtask) => (
-            <SubtaskRow key={subtask.id} subtask={subtask} currentPath={currentPath} />
+            <SubtaskRow
+              key={subtask.id}
+              subtask={subtask}
+              members={members}
+              currentPath={currentPath}
+            />
           ))}
 
           <form action={addSubtaskAction} className="flex flex-wrap items-end gap-2 pt-2">
@@ -104,6 +108,7 @@ export function TaskItem({
               <Label htmlFor={`subtugas-deadline-baru-${task.id}`}>Deadline</Label>
               <Input id={`subtugas-deadline-baru-${task.id}`} name="deadline" type="date" />
             </div>
+            <AssigneeSelect members={members} value={null} idPrefix={`subtugas-baru-${task.id}`} />
             <Button type="submit" size="sm">
               + Tambah Subtugas
             </Button>

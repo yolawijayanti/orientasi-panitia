@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AssigneeSelect, type AssignableMember } from "@/components/tasks/assignee-select";
+import { StatusChoice } from "@/components/tasks/status-choice";
 import { updateSubtask, deleteSubtask, type ItemStatus } from "@/lib/tasks/actions";
-import { NATIVE_SELECT_CLASSNAME } from "@/lib/utils";
 
 export type Subtask = {
   id: string;
@@ -10,9 +11,18 @@ export type Subtask = {
   judul: string;
   deadline: string | null;
   status: ItemStatus;
+  assignee_id: string | null;
 };
 
-export function SubtaskRow({ subtask, currentPath }: { subtask: Subtask; currentPath: string }) {
+export function SubtaskRow({
+  subtask,
+  members,
+  currentPath,
+}: {
+  subtask: Subtask;
+  members: AssignableMember[];
+  currentPath: string;
+}) {
   const updateAction = updateSubtask.bind(null, subtask.id, currentPath);
   const deleteAction = deleteSubtask.bind(null, subtask.id, currentPath);
 
@@ -37,19 +47,12 @@ export function SubtaskRow({ subtask, currentPath }: { subtask: Subtask; current
             defaultValue={subtask.deadline ?? ""}
           />
         </div>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor={`subtugas-status-${subtask.id}`}>Status</Label>
-          <select
-            id={`subtugas-status-${subtask.id}`}
-            name="status"
-            defaultValue={subtask.status}
-            className={NATIVE_SELECT_CLASSNAME}
-          >
-            <option value="belum">Belum</option>
-            <option value="proses">Proses</option>
-            <option value="selesai">Selesai</option>
-          </select>
-        </div>
+        <AssigneeSelect
+          members={members}
+          value={subtask.assignee_id}
+          idPrefix={`subtugas-${subtask.id}`}
+        />
+        <StatusChoice value={subtask.status} idPrefix={`subtugas-${subtask.id}`} />
         <Button type="submit" size="sm" variant="secondary">
           Simpan
         </Button>

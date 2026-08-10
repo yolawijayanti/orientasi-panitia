@@ -1,7 +1,12 @@
 import { notFound } from "next/navigation";
 
 import { PageNav } from "@/components/page-nav";
-import { BucketTasksSection, type Task, type Subtask } from "@/components/tasks/bucket-tasks-section";
+import {
+  BucketTasksSection,
+  type Task,
+  type Subtask,
+  type AssignableMember,
+} from "@/components/tasks/bucket-tasks-section";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function LeaderBucketDetailPage({
@@ -26,7 +31,7 @@ export default async function LeaderBucketDetailPage({
 
   const { data: tasks } = await supabase
     .from("tasks")
-    .select("id, judul, deadline, status")
+    .select("id, judul, deadline, status, assignee_id")
     .eq("bucket_id", bucketId)
     .order("created_at");
 
@@ -35,10 +40,16 @@ export default async function LeaderBucketDetailPage({
   const { data: subtasks } = taskIds.length
     ? await supabase
         .from("subtasks")
-        .select("id, task_id, judul, deadline, status")
+        .select("id, task_id, judul, deadline, status, assignee_id")
         .in("task_id", taskIds)
         .order("created_at")
     : { data: [] as Subtask[] };
+
+  const { data: members } = await supabase
+    .from("committee_members")
+    .select("id, nama, role")
+    .eq("kepanitiaan_site_id", instanceId)
+    .order("created_at");
 
   const subtasksByTask: Record<string, Subtask[]> = {};
   for (const subtask of (subtasks ?? []) as Subtask[]) {
@@ -63,6 +74,7 @@ export default async function LeaderBucketDetailPage({
         bucketId={bucketId}
         tasks={(tasks ?? []) as Task[]}
         subtasksByTask={subtasksByTask}
+        members={(members ?? []) as AssignableMember[]}
         currentPath={currentPath}
         error={error}
       />
