@@ -8,6 +8,9 @@ import {
   type Subtask,
   type AssignableMember,
 } from "@/components/tasks/bucket-tasks-section";
+import { BudgetSubmissionSection } from "@/components/budget/budget-submission-section";
+import { loadBudgetTemplate } from "@/lib/budget/template";
+import { loadBudgetSubmission } from "@/lib/budget/submission";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function BucketDetailPanitiaPage({
@@ -80,6 +83,15 @@ export default async function BucketDetailPanitiaPage({
     (subtasksByTask[subtask.task_id] ??= []).push(subtask);
   }
 
+  const currentPath = `/panitia/bucket/${bucketId}`;
+
+  const [template, submission] = bucket.is_budgeting
+    ? await Promise.all([
+        loadBudgetTemplate(supabase),
+        loadBudgetSubmission(supabase, kepanitiaanSiteId),
+      ])
+    : [null, null];
+
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
       <div className="flex items-center justify-between">
@@ -95,13 +107,23 @@ export default async function BucketDetailPanitiaPage({
         <LogoutButton />
       </div>
 
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      {bucket.is_budgeting && submission && (
+        <BudgetSubmissionSection
+          kepanitiaanSiteId={kepanitiaanSiteId}
+          submission={submission}
+          template={template}
+          currentPath={currentPath}
+        />
+      )}
+
       <BucketTasksSection
         bucketId={bucketId}
         tasks={(tasks ?? []) as Task[]}
         subtasksByTask={subtasksByTask}
         members={(members ?? []) as AssignableMember[]}
-        currentPath={`/panitia/bucket/${bucketId}`}
-        error={error}
+        currentPath={currentPath}
       />
     </main>
   );
