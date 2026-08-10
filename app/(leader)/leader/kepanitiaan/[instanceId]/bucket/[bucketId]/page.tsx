@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { PageNav } from "@/components/page-nav";
 import { BucketTasksSection, type Task, type Subtask } from "@/components/tasks/bucket-tasks-section";
 import { createClient } from "@/lib/supabase/server";
 
@@ -50,13 +50,8 @@ export default async function LeaderBucketDetailPage({
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
       <div>
-        <Link
-          href={`/leader/kepanitiaan/${instanceId}`}
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          ← Kembali ke detail instance
-        </Link>
-        <h1 className="text-xl font-semibold">
+        <PageNav homeHref="/leader/dashboard" />
+        <h1 className="mt-1 text-xl font-semibold">
           {bucket.nama_bidang}
           {bucket.is_budgeting && (
             <span className="ml-2 text-sm font-normal text-muted-foreground">(Budgeting)</span>

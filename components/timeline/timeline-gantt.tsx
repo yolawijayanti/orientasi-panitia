@@ -13,17 +13,17 @@ import { cn } from "@/lib/utils";
 import type { Milestone } from "@/components/timeline/timeline-section";
 
 /**
- * "akan_datang" pakai border tebal + transparan (bukan bg-secondary) supaya
- * kelihatan beda dari "lewat" (bg-muted) -- keduanya sebelumnya nyaris sama
- * karena token --secondary dan --muted di globals.css nilainya sama-sama
- * oklch(0.97 0 0). Ini perbaikan legibility minimal (masih token warna
- * netral yang sudah ada, bukan warna baru) supaya 3 status kebaca beda tanpa
- * mendahului palet warna Fase 8.
+ * Warna status Gantt. Sebelumnya ketiganya pakai token netral (hollow /
+ * bg-muted / bg-primary) -- "berlangsung" jadi hitam polos, yang tidak
+ * kebaca sebagai "sedang jalan" dan gampang tertukar dengan bar biasa.
+ * Sekarang tiap status punya hue sendiri yang maknanya jelas: biru = sedang
+ * berlangsung (dan diberi ring supaya paling menonjol di antara semua bar),
+ * abu-abu solid = sudah lewat, hollow = belum mulai.
  */
 const GANTT_BAR_CLASSNAME: Record<MilestoneStatus, string> = {
-  akan_datang: "border-2 border-muted-foreground bg-transparent",
-  berlangsung: "bg-primary",
-  lewat: "bg-muted",
+  akan_datang: "border-2 border-sky-400 bg-sky-50 dark:bg-sky-950",
+  berlangsung: "bg-blue-600 ring-2 ring-blue-300 dark:ring-blue-800",
+  lewat: "bg-slate-300 dark:bg-slate-700",
 };
 
 export function TimelineGantt({

@@ -1,4 +1,5 @@
 import { LogoutButton } from "@/components/logout-button";
+import { PageNav } from "@/components/page-nav";
 import { TimelineSection, type Milestone } from "@/components/timeline/timeline-section";
 import { createClient } from "@/lib/supabase/server";
 
@@ -52,10 +53,13 @@ export default async function TimelinePanitiaPage({
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">
-          Timeline Pelaksanaan — {typedInstance?.kepanitiaan?.nama} @ {typedInstance?.site?.nama_site}
-        </h1>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <PageNav homeHref="/panitia/dashboard" />
+          <h1 className="mt-1 text-xl font-semibold">
+            Timeline Pelaksanaan — {typedInstance?.kepanitiaan?.nama} @ {typedInstance?.site?.nama_site}
+          </h1>
+        </div>
         <LogoutButton />
       </div>
       <TimelineSection

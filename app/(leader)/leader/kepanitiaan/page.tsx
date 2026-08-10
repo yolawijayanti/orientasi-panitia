@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { LogoutButton } from "@/components/logout-button";
+import { PageNav } from "@/components/page-nav";
 import { deleteKepanitiaan, renameKepanitiaan } from "@/lib/kepanitiaan/actions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -42,11 +43,13 @@ export default async function KepanitiaanListPage({
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">Manajemen Kepanitiaan</h1>
+          <PageNav homeHref="/leader/dashboard" />
+          <h1 className="mt-1 text-xl font-semibold">Manajemen Kepanitiaan</h1>
           <p className="text-sm text-muted-foreground">
-            Setiap kepanitiaan bisa berjalan di beberapa site sekaligus.
+            Pilih salah satu site di bawah untuk membuka Timeline, Bucket Tugas, dan Susunan
+            Panitia instance tersebut.
           </p>
         </div>
         <div className="flex gap-2">

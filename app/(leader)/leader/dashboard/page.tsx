@@ -18,8 +18,13 @@ export default async function LeaderDashboardPage() {
         <LogoutButton />
       </div>
       <Button asChild className="w-fit">
-        <Link href="/leader/kepanitiaan">Kelola Kepanitiaan &amp; Susunan Panitia</Link>
+        <Link href="/leader/kepanitiaan">Kelola Kepanitiaan</Link>
       </Button>
+      <p className="text-sm text-muted-foreground">
+        Timeline, Bucket Tugas, dan Susunan Panitia dikelola <strong>per instance</strong>{" "}
+        (kepanitiaan + site), bukan global — buka Kelola Kepanitiaan lalu pilih site-nya untuk
+        masuk ke ketiganya.
+      </p>
       <p className="text-muted-foreground">
         Ringkasan progres lintas kepanitiaan/site akan diimplementasikan di Fase 6.
       </p>

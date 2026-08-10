@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { LogoutButton } from "@/components/logout-button";
+import { PageNav } from "@/components/page-nav";
 import { BucketTasksSection, type Task, type Subtask } from "@/components/tasks/bucket-tasks-section";
 import { createClient } from "@/lib/supabase/server";
 
@@ -73,10 +73,8 @@ export default async function BucketDetailPanitiaPage({
     <main className="flex min-h-screen flex-col gap-6 p-8">
       <div className="flex items-center justify-between">
         <div>
-          <Link href="/panitia/bucket" className="text-sm text-muted-foreground hover:underline">
-            ← Kembali ke daftar bucket
-          </Link>
-          <h1 className="text-xl font-semibold">
+          <PageNav homeHref="/panitia/dashboard" />
+          <h1 className="mt-1 text-xl font-semibold">
             {bucket.nama_bidang}
             {bucket.is_budgeting && (
               <span className="ml-2 text-sm font-normal text-muted-foreground">(Budgeting)</span>

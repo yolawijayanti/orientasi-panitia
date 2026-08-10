@@ -1,4 +1,5 @@
 import { LogoutButton } from "@/components/logout-button";
+import { PageNav } from "@/components/page-nav";
 import { BucketListSection, type BucketSummary } from "@/components/buckets/bucket-list-section";
 import { computeBucketProgressMap } from "@/lib/tasks/progress";
 import type { ItemStatus } from "@/lib/tasks/actions";
@@ -71,10 +72,13 @@ export default async function BucketListPanitiaPage({
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">
-          Bucket Tugas — {typedInstance?.kepanitiaan?.nama} @ {typedInstance?.site?.nama_site}
-        </h1>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <PageNav homeHref="/panitia/dashboard" />
+          <h1 className="mt-1 text-xl font-semibold">
+            Bucket Tugas — {typedInstance?.kepanitiaan?.nama} @ {typedInstance?.site?.nama_site}
+          </h1>
+        </div>
         <LogoutButton />
       </div>
       <BucketListSection
