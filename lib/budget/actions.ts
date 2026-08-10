@@ -9,6 +9,7 @@ import {
   MAX_BUDGET_FILE_BYTES,
   SUBMISSION_BUCKET,
 } from "@/lib/budget/constants";
+import { checkAndNotifyBudgetLengkap } from "@/lib/notifications/notify-leader";
 
 function withError(redirectTo: string, message: string): never {
   redirect(`${redirectTo}?error=${encodeURIComponent(message)}`);
@@ -78,6 +79,8 @@ export async function submitBudget(
   if (dbError) {
     withError(redirectTo, "File terunggah tapi gagal disimpan statusnya.");
   }
+
+  await checkAndNotifyBudgetLengkap(supabase, kepanitiaanSiteId);
 
   revalidatePath(redirectTo);
 }
