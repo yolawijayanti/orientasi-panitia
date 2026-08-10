@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { InstanceGroup } from "@/lib/dashboard/leader-overview";
 
 /**
- * Checklist multi-select semua instance, dikelompokkan per kepanitiaan.
- * Form GET tanpa `action` -- browser submit ke URL halaman saat ini dengan
- * checkbox terpilih sebagai query string (`?instance=id1&instance=id2`),
- * jadi nol client-side JS, mengikuti pola form-driven-by-query-params yang
- * sudah dipakai di halaman lain (mis. `?error=...`).
+ * Checklist multi-select semua instance, ditampilkan sebagai grid: baris =
+ * event, kolom = site -- nama site yang sama selalu jatuh di kolom yang
+ * sama di semua baris, jadi "berjajar" dan gampang dibandingkan sekilas
+ * (mis. langsung kelihatan event mana yang belum jalan di site tertentu,
+ * karena selnya kosong). Form GET tanpa `action` -- browser submit ke URL
+ * halaman saat ini dengan checkbox terpilih sebagai query string
+ * (`?instance=id1&instance=id2`), jadi nol client-side JS.
  */
 export function InstancePicker({
   groups,
@@ -30,35 +32,62 @@ export function InstancePicker({
     );
   }
 
+  const siteNames = Array.from(
+    new Set(groups.flatMap((group) => group.instances.map((instance) => instance.siteNama)))
+  ).sort((a, b) => a.localeCompare(b));
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Pilih Instance untuk Dibandingkan</CardTitle>
+        <CardTitle>Pilih event per site</CardTitle>
       </CardHeader>
       <CardContent>
-        <form method="get" className="flex flex-col gap-5">
-          {groups.map((group) => (
-            <div key={group.kepanitiaanId} className="flex flex-col gap-2">
-              <h3 className="text-sm font-semibold">{group.kepanitiaanNama}</h3>
-              <div className="flex flex-wrap gap-2">
-                {group.instances.map((instance) => (
-                  <label
-                    key={instance.id}
-                    className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                  >
-                    <input
-                      type="checkbox"
-                      name="instance"
-                      value={instance.id}
-                      defaultChecked={selectedIds.includes(instance.id)}
-                      className="size-4 accent-primary"
-                    />
-                    {instance.siteNama}
-                  </label>
-                ))}
-              </div>
-            </div>
-          ))}
+        <form method="get" className="flex flex-col gap-4">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-max border-collapse text-sm">
+              <thead>
+                <tr>
+                  <th className="border-b p-2 text-left font-semibold">Event</th>
+                  {siteNames.map((siteNama) => (
+                    <th key={siteNama} className="border-b p-2 text-center font-semibold">
+                      {siteNama}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {groups.map((group) => {
+                  const instanceBySite = new Map(
+                    group.instances.map((instance) => [instance.siteNama, instance]),
+                  );
+
+                  return (
+                    <tr key={group.kepanitiaanId} className="border-b">
+                      <td className="p-2 font-medium">{group.kepanitiaanNama}</td>
+                      {siteNames.map((siteNama) => {
+                        const instance = instanceBySite.get(siteNama);
+                        return (
+                          <td key={siteNama} className="p-2 text-center">
+                            {instance ? (
+                              <input
+                                type="checkbox"
+                                name="instance"
+                                value={instance.id}
+                                defaultChecked={selectedIds.includes(instance.id)}
+                                className="size-4 accent-primary"
+                              />
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
           <Button type="submit" className="w-fit">
             Tampilkan Perbandingan
