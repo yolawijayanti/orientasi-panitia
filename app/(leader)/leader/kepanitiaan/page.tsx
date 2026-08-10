@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { LogoutButton } from "@/components/logout-button";
 import { PageNav } from "@/components/page-nav";
 import { KepanitiaanHeader } from "@/components/kepanitiaan/kepanitiaan-header";
-import { BudgetTemplateSection } from "@/components/budget/budget-template-section";
 import { deleteKepanitiaan, renameKepanitiaan } from "@/lib/kepanitiaan/actions";
 import { uploadKepanitiaanLogo, removeKepanitiaanLogo } from "@/lib/kepanitiaan/logo-actions";
-import { loadBudgetTemplate } from "@/lib/budget/template";
+import { uploadBudgetTemplate, removeBudgetTemplate } from "@/lib/budget/template-actions";
+import { loadBudgetTemplate, type BudgetTemplate } from "@/lib/budget/template";
 import { createClient } from "@/lib/supabase/server";
 
 const CURRENT_PATH = "/leader/kepanitiaan";
@@ -26,7 +26,6 @@ export default async function KepanitiaanListPage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
-  const template = await loadBudgetTemplate(supabase);
   const { data } = await supabase
     .from("kepanitiaan_site")
     .select("id, kepanitiaan(id, nama, logo_url), site:sites(id, nama_site)")
@@ -48,6 +47,17 @@ export default async function KepanitiaanListPage({
     grouped.get(key)!.instances.push(instance);
   }
 
+  // Template budgeting per event (Fase 5 revisi) -- 1 storage list() call per
+  // event, dijalankan paralel supaya tidak menambah waktu load berkali lipat
+  // walau kepanitiaan-nya banyak.
+  const groups = await Promise.all(
+    Array.from(grouped.entries()).map(async ([id, group]) => ({
+      id,
+      ...group,
+      budgetTemplate: await loadBudgetTemplate(supabase, id),
+    })),
+  );
+
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
       <div className="flex items-start justify-between gap-2">
@@ -59,27 +69,24 @@ export default async function KepanitiaanListPage({
             Panitia instance tersebut.
           </p>
         </div>
-        <div className="flex w-full max-w-sm shrink-0 flex-col items-end gap-3 sm:w-auto">
-          <div className="flex gap-2">
-            <Button asChild>
-              <Link href="/leader/kepanitiaan/baru">+ Buat Kepanitiaan / Tambah Site</Link>
-            </Button>
-            <LogoutButton />
-          </div>
-          <BudgetTemplateSection template={template} className="w-full" />
+        <div className="flex gap-2">
+          <Button asChild>
+            <Link href="/leader/kepanitiaan/baru">+ Buat Kepanitiaan / Tambah Site</Link>
+          </Button>
+          <LogoutButton />
         </div>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      {grouped.size === 0 && (
+      {groups.length === 0 && (
         <p className="text-muted-foreground">
           Belum ada kepanitiaan. Buat yang pertama lewat tombol di atas.
         </p>
       )}
 
       <div className="flex flex-col gap-4">
-        {Array.from(grouped.entries()).map(([id, group]) => {
+        {groups.map(({ id, nama, logoUrl, instances: groupInstances, budgetTemplate }) => {
           const renameAction = renameKepanitiaan.bind(null, id, CURRENT_PATH);
           const deleteAction = deleteKepanitiaan.bind(null, id, CURRENT_PATH);
 
@@ -87,17 +94,20 @@ export default async function KepanitiaanListPage({
             <Card key={id}>
               <CardHeader>
                 <KepanitiaanHeader
-                  nama={group.nama}
-                  logoUrl={group.logoUrl}
-                  jumlahInstance={group.instances.length}
+                  nama={nama}
+                  logoUrl={logoUrl}
+                  jumlahInstance={groupInstances.length}
                   renameAction={renameAction}
                   deleteAction={deleteAction}
                   uploadLogoAction={uploadKepanitiaanLogo.bind(null, id, CURRENT_PATH)}
                   removeLogoAction={removeKepanitiaanLogo.bind(null, id, CURRENT_PATH)}
+                  budgetTemplate={budgetTemplate as BudgetTemplate | null}
+                  uploadBudgetTemplateAction={uploadBudgetTemplate.bind(null, id, CURRENT_PATH)}
+                  removeBudgetTemplateAction={removeBudgetTemplate.bind(null, id, CURRENT_PATH)}
                 />
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
-                {group.instances.map((instance) => (
+                {groupInstances.map((instance) => (
                   <Button key={instance.id} asChild variant="outline" size="sm">
                     <Link href={`/leader/kepanitiaan/${instance.id}`}>
                       {instance.site?.nama_site ?? "Site tidak diketahui"}

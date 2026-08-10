@@ -51,12 +51,12 @@ export default async function PanitiaWorkspacePage({
 
   const { data: instance } = await supabase
     .from("kepanitiaan_site")
-    .select("kepanitiaan(nama), site:sites(nama_site)")
+    .select("kepanitiaan(id, nama), site:sites(nama_site)")
     .eq("id", kepanitiaanSiteId)
     .single();
 
   const typedInstance = instance as unknown as {
-    kepanitiaan: { nama: string } | null;
+    kepanitiaan: { id: string; nama: string } | null;
     site: { nama_site: string } | null;
   } | null;
 
@@ -82,8 +82,9 @@ export default async function PanitiaWorkspacePage({
   const board = await loadBucketBoardData(supabase, kepanitiaanSiteId, bucketRows);
   const myTasks = await loadMyTasks(supabase, kepanitiaanSiteId, authData.user.email);
   const candidateAccounts = await loadCandidateAccounts(supabase, kepanitiaanSiteId);
+  const kepanitiaanId = typedInstance?.kepanitiaan?.id;
   const [budgetTemplate, budgetSubmission] = await Promise.all([
-    loadBudgetTemplate(supabase),
+    kepanitiaanId ? loadBudgetTemplate(supabase, kepanitiaanId) : Promise.resolve(null),
     loadBudgetSubmission(supabase, kepanitiaanSiteId),
   ]);
 
