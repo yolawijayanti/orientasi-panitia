@@ -1,12 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  addCommitteeMember,
-  deleteCommitteeMember,
-  updateCommitteeMember,
-} from "@/lib/committee/actions";
+import { CommitteeMemberRow } from "@/components/committee/committee-member-row";
+import { addCommitteeMember } from "@/lib/committee/actions";
 import { NATIVE_SELECT_CLASSNAME } from "@/lib/utils";
 
 export type CommitteeMember = {
@@ -21,6 +19,14 @@ export type Bucket = {
   id: string;
   nama_bidang: string;
 };
+
+/** Leader bidang selalu di atas; sisanya menjaga urutan input (query sudah order by created_at). */
+function sortLeaderFirst(members: CommitteeMember[]): CommitteeMember[] {
+  return [...members].sort((a, b) => {
+    if (a.role === b.role) return 0;
+    return a.role === "leader_bidang" ? -1 : 1;
+  });
+}
 
 export function CommitteeMembersSection({
   kepanitiaanSiteId,
@@ -37,6 +43,18 @@ export function CommitteeMembersSection({
 }) {
   const addAction = addCommitteeMember.bind(null, kepanitiaanSiteId, currentPath);
 
+  const groups = buckets.map((bucket) => ({
+    bucket,
+    members: sortLeaderFirst(members.filter((member) => member.bucket_id === bucket.id)),
+  }));
+
+  // Anggota lama yang bucket_id-nya masih null (dibuat sebelum bidang jadi wajib
+  // untuk semua role) tetap ditampilkan supaya tidak "hilang" dari halaman.
+  const bucketIds = new Set(buckets.map((bucket) => bucket.id));
+  const tanpaBidang = sortLeaderFirst(
+    members.filter((member) => !member.bucket_id || !bucketIds.has(member.bucket_id)),
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -45,75 +63,51 @@ export function CommitteeMembersSection({
       <CardContent className="flex flex-col gap-6">
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <div className="flex flex-col gap-3">
-          {members.length === 0 && (
-            <p className="text-sm text-muted-foreground">Belum ada anggota panitia.</p>
-          )}
-          {members.map((member) => {
-            const updateAction = updateCommitteeMember.bind(null, member.id, currentPath);
-            const deleteAction = deleteCommitteeMember.bind(null, member.id, currentPath);
+        {members.length === 0 && (
+          <p className="text-sm text-muted-foreground">Belum ada anggota panitia.</p>
+        )}
 
-            return (
-              <div
+        {groups.map(({ bucket, members: anggotaBidang }) => (
+          <div key={bucket.id} className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 border-b pb-1">
+              <h3 className="text-sm font-semibold">{bucket.nama_bidang}</h3>
+              <Badge variant="muted">{anggotaBidang.length} orang</Badge>
+            </div>
+            {anggotaBidang.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Belum ada anggota di bidang ini.</p>
+            ) : (
+              anggotaBidang.map((member) => (
+                <CommitteeMemberRow
+                  key={member.id}
+                  member={member}
+                  buckets={buckets}
+                  currentPath={currentPath}
+                />
+              ))
+            )}
+          </div>
+        ))}
+
+        {tanpaBidang.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 border-b pb-1">
+              <h3 className="text-sm font-semibold">Tanpa Bidang</h3>
+              <Badge variant="outline">{tanpaBidang.length} orang</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Anggota di bawah ini belum punya bidang. Pilih bidangnya lalu Simpan supaya masuk ke
+              kelompok yang benar.
+            </p>
+            {tanpaBidang.map((member) => (
+              <CommitteeMemberRow
                 key={member.id}
-                className="flex flex-wrap items-end gap-2 rounded-md border p-3"
-              >
-                <form action={updateAction} className="flex flex-1 flex-wrap items-end gap-2">
-                  <div className="flex min-w-32 flex-1 flex-col gap-1">
-                    <Label htmlFor={`nama-${member.id}`}>Nama</Label>
-                    <Input id={`nama-${member.id}`} name="nama" defaultValue={member.nama} required />
-                  </div>
-                  <div className="flex min-w-40 flex-1 flex-col gap-1">
-                    <Label htmlFor={`email-${member.id}`}>Email</Label>
-                    <Input
-                      id={`email-${member.id}`}
-                      name="email"
-                      type="email"
-                      defaultValue={member.email ?? ""}
-                    />
-                  </div>
-                  <div className="flex min-w-32 flex-col gap-1">
-                    <Label htmlFor={`role-${member.id}`}>Role</Label>
-                    <select
-                      id={`role-${member.id}`}
-                      name="role"
-                      defaultValue={member.role}
-                      className={NATIVE_SELECT_CLASSNAME}
-                    >
-                      <option value="anggota">Anggota</option>
-                      <option value="leader_bidang">Leader Bidang</option>
-                    </select>
-                  </div>
-                  {buckets.length > 0 && (
-                    <div className="flex min-w-40 flex-col gap-1">
-                      <Label htmlFor={`bucket-${member.id}`}>Bidang</Label>
-                      <select
-                        id={`bucket-${member.id}`}
-                        name="bucket_id"
-                        defaultValue={member.bucket_id ?? buckets[0].id}
-                        className={NATIVE_SELECT_CLASSNAME}
-                      >
-                        {buckets.map((bucket) => (
-                          <option key={bucket.id} value={bucket.id}>
-                            {bucket.nama_bidang}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  <Button type="submit" size="sm" variant="secondary">
-                    Simpan
-                  </Button>
-                </form>
-                <form action={deleteAction}>
-                  <Button type="submit" size="sm" variant="destructive">
-                    Hapus
-                  </Button>
-                </form>
-              </div>
-            );
-          })}
-        </div>
+                member={member}
+                buckets={buckets}
+                currentPath={currentPath}
+              />
+            ))}
+          </div>
+        )}
 
         <form action={addAction} className="flex flex-wrap items-end gap-2 border-t pt-4">
           <div className="flex min-w-32 flex-1 flex-col gap-1">
