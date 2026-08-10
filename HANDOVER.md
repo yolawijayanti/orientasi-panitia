@@ -140,6 +140,8 @@ Jangan tambahkan tabel/kolom untuk: notulensi meeting, game path journey, leader
 
 **Fase 6 boleh dikerjakan lebih dulu di sesi baru, PARALEL dengan checklist Fase 5 di atas** -- ini permintaan eksplisit Yolanda, bukan penyimpangan diam-diam dari urutan "satu fase per session": Fase 6 (dashboard ringkasan lintas-instance) cuma baca kolom `budget_submissions.status` yang skemanya sudah stabil sejak migration Fase 1, tidak bergantung ke lokasi UI widget budgeting yang masih berubah-ubah. **Sesi yang mengerjakan Fase 6 tidak perlu menunggu checklist Fase 5 tuntas**, tapi checklist itu tetap harus diselesaikan (oleh Yolanda sendiri, atau sesi lain) sebelum Fase 5 resmi dicentang `[x]` di section 8 atas.
 
+**Fase 6 -- kode sudah selesai ditulis (sesi ini), belum diverifikasi live.** Dikerjakan sesuai izin "Fase 6 boleh dikerjakan lebih dulu, PARALEL dengan checklist Fase 5" di atas -- murni membaca tabel yang sudah ada (termasuk `budget_submissions`, migration `...0009` sudah dikonfirmasi jalan), tidak ada migration baru. Detail lengkap ada di **Catatan Teknis Fase 6** di bawah.
+
 ## 9. Catatan Teknis per Fase
 
 > Detail implementasi & keputusan teknis tiap fase, supaya session berikutnya tidak perlu menebak-nebak dari riwayat chat yang sudah tidak ada.
@@ -490,3 +492,35 @@ Ketiga langkah verifikasi (poin 5-6 `verify_fase4.sql`) **lolos semua**:
 (Poin 9 versi sebelumnya -- cek alat bantu "Cek Susunan Panitia" -- sudah tidak berlaku, alat itu sudah dipakai & dihapus lagi, lihat Revisi 5 di atas.)
 
 Setelah kedelapan langkah di atas lolos, centang Fase 5 selesai di section 8.
+
+### Fase 6 — Dashboard Kepanitiaan (Leader)
+
+**Tidak ada migration baru di fase ini.** Dashboard murni membaca ulang tabel yang sudah ada (`kepanitiaan_site`, `buckets`, `tasks`, `subtasks`, `committee_members`, `budget_submissions`) lewat helper yang sudah dibuat di fase-fase sebelumnya -- tidak ada kolom/tabel baru di model data section 5.
+
+**`lib/dashboard/leader-overview.ts`** (baru):
+- `loadInstanceGroups(supabase)` -- semua instance `kepanitiaan_site`, dikelompokkan per `kepanitiaan` (event), diurutkan by nama event lalu nama site (beda dari `/leader/kepanitiaan` yang urut by `id`/insert order -- checklist dashboard sengaja dibuat mudah ditelusuri kalau jumlah event/site sudah banyak). Dipakai untuk render checklist multi-select.
+- `loadInstanceOverview(supabase, instance)` -- ringkasan 1 instance: progres gabungan tugas+subtugas (**reuse `loadBucketBoardData`** dari Fase 4, angka yang sama persis dengan yang dilihat panitia/leader di halaman workspace/board -- sengaja tidak dihitung ulang dengan cara berbeda), progres per bidang (dari `progressByBucket` yang sama), dan status budgeting (**reuse `loadBudgetSubmission`** dari Fase 5). Dipanggil sekali per instance yang dicentang leader (`Promise.all`, paralel).
+
+**`lib/budget/format.ts`** (baru, refactor kecil): `BUDGET_STATUS_LABEL`/`BUDGET_STATUS_BADGE_CLASSNAME` diekstrak dari `budget-submission-section.tsx` (sebelumnya konstanta lokal di file itu) supaya kartu perbandingan Fase 6 bisa pakai warna/label status budgeting yang identik tanpa duplikasi. `budget-submission-section.tsx` diupdate untuk import dari sini (`as STATUS_LABEL`/`as STATUS_CLASSNAME` supaya nama variabel di file itu tidak berubah, jadi diff-nya minimal).
+
+**Mekanisme multi-select -- form GET tanpa JS, bukan `useState`/client component**: mengikuti prinsip "nol client-side JS kalau bisa" yang sudah dipegang sejak susunan panitia Fase 2 dan bucket Fase 4. Checkbox `name="instance"` (bisa banyak, value = id instance) di dalam `<form method="get">` **tanpa atribut `action`** -- browser otomatis submit ke URL halaman saat ini dengan semua checkbox terpilih sebagai query string (`?instance=<id1>&instance=<id2>`), Next.js App Router membaca ini lewat `searchParams` di halaman (Server Component, bukan `useSearchParams()` client hook). Konsekuensinya: pilihan instance **ter-bookmark di URL** (bisa di-refresh/share link-nya tanpa kehilangan pilihan) -- efek samping yang tidak diminta eksplisit tapi cocok dengan HANDOVER section 6 ("leader bisa pilih beberapa instance sekaligus dan lihat perbandingan progres side-by-side").
+- `components/dashboard/instance-picker.tsx` (`InstancePicker`) -- render checklist-nya, dikelompokkan per event dengan heading, checkbox `defaultChecked` dari `selectedIds` supaya state di URL tercermin balik ke tampilan setelah submit.
+- `components/dashboard/instance-overview-card.tsx` (`InstanceOverviewCard`) -- satu kartu perbandingan per instance terpilih, lebar tetap (`w-72`, pola sama seperti kolom `BucketBoard` Fase 4 dan bar Gantt Fase 3) supaya beberapa kartu bisa disejajarkan dalam baris `overflow-x-auto` untuk perbandingan "side-by-side" sesuai kriteria selesai Fase 6. Isinya: `ProgressRing` (reuse dari Fase 4) untuk progres gabungan, badge status budgeting (reuse `lib/budget/format.ts`), daftar progres per bidang (nama bidang + `ProgressBar` reuse + persen), dan link "Buka Instance" ke `/leader/kepanitiaan/[instanceId]` untuk drill-in kalau leader mau lihat detailnya.
+
+**`app/(leader)/leader/dashboard/page.tsx`** (diubah, sebelumnya cuma placeholder teks "akan diimplementasikan di Fase 6"): menambahkan `InstancePicker` + baris kartu perbandingan (kalau ada instance yang dicentang) di bawah tombol "Kelola Kepanitiaan" yang sudah ada. Parsing `searchParams.instance` (bisa `string | string[] | undefined` dari Next.js kalau ada 0/1/banyak checkbox tercentang) dinormalisasi jadi array dulu sebelum difilter ke `loadInstanceGroups()` -- id yang tidak valid (misal instance sudah dihapus tapi URL lama masih dibookmark) otomatis diabaikan karena filter-nya cocokkan ke daftar instance yang benar-benar ada, tidak trust langsung ke query string.
+
+**Kenapa dikerjakan sebelum Fase 5 dicentang selesai**: instruksi langsung Yolanda di sesi ini ("saat ini kita akan start di fase 6"), sesuai izin eksplisit "Fase 6 boleh dikerjakan lebih dulu, PARALEL dengan checklist Fase 5" di section 8 -- bukan pelanggaran urutan section 6 secara diam-diam. Tidak ada masalah teknis: migration `...0009` sudah dikonfirmasi jalan (lihat section 8), dan Fase 6 cuma **membaca** `budget_submissions` (tidak menulis) sehingga akan tetap konsisten dipakai terlepas dari itu.
+
+**Catatan sinkronisasi**: sesi ini awalnya mengira Catatan Teknis Fase 5 usang (ditemukan lewat `git log` sebelum sesi ini di-rebase ke `main` terbaru) dan sempat menulis ulang sebagian isinya sendiri -- setelah rebase, ternyata sesi lain (PR #7) sudah memperbaikinya lebih dulu dengan detail yang lebih lengkap (5 ronde revisi, termasuk riwayat alat bantu "Cek Susunan Panitia" yang sempat ditambah lalu dihapus). Versi Fase 5 di atas adalah **punya PR #7**, bukan tulisan ulang sesi ini -- dipertahankan karena lebih akurat.
+
+**Verifikasi yang sudah dilakukan (di sandbox, bukan live)**: `npm install`, `next build`, `next lint` -- semua bersih dengan `.env.local` placeholder sementara (dihapus lagi sebelum commit, tidak pernah masuk git, pola sama seperti fase-fase sebelumnya). Koneksi nyata ke Supabase (isi checklist multi-select dengan data instance sungguhan, angka progres yang benar) tetap tidak bisa dites dari sandbox ini.
+
+**Langkah verifikasi live yang harus dilakukan Yolanda** (syarat centang Fase 6 di section 8):
+1. Login sebagai leader, buka `/leader/dashboard` -- pastikan card "Pilih Instance untuk Dibandingkan" muncul dengan checklist dikelompokkan per event, masing-masing menampilkan nama site sebagai pilihan checkbox.
+2. Centang 2-3 instance dari event yang SAMA maupun event yang BEDA (mis. "FIND @ Cibitung" + "PON @ Ciawi"), klik "Tampilkan Perbandingan" -- pastikan muncul baris kartu yang bisa di-scroll horizontal, masing-masing menampilkan nama event+site yang benar, ring persentase, dan progres per bidang instance itu (cocokkan angkanya dengan yang dilihat langsung di workspace/board instance tersebut).
+3. Refresh halaman (atau copy-paste URL-nya ke tab baru) -- pastikan instance yang tadi dicentang **tetap tercentang** dan kartunya tetap tampil (bukti pilihan tersimpan di URL, bukan cuma state sementara).
+4. Cek badge status Budgeting di tiap kartu -- untuk instance yang panitia-nya sudah submit lengkap (kalau Fase 5 sudah diverifikasi), badge harus "Lengkap"; untuk yang belum, "Belum Lengkap".
+5. Klik "Buka Instance" di salah satu kartu -- pastikan masuk ke halaman detail instance (`/leader/kepanitiaan/[instanceId]`) yang benar, bukan instance lain.
+6. Uncheck semua instance dan submit ulang -- pastikan baris kartu perbandingan hilang (kembali ke tampilan checklist saja, tidak ada kartu kosong/error).
+
+Setelah keenam langkah di atas lolos, centang Fase 6 selesai di section 8 dan lanjut ke **Fase 7 — Notifikasi**.
