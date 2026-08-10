@@ -5,8 +5,10 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { LogoutButton } from "@/components/logout-button";
 import { PageNav } from "@/components/page-nav";
 import { KepanitiaanHeader } from "@/components/kepanitiaan/kepanitiaan-header";
+import { BudgetTemplateSection } from "@/components/budget/budget-template-section";
 import { deleteKepanitiaan, renameKepanitiaan } from "@/lib/kepanitiaan/actions";
 import { uploadKepanitiaanLogo, removeKepanitiaanLogo } from "@/lib/kepanitiaan/logo-actions";
+import { loadBudgetTemplate } from "@/lib/budget/template";
 import { createClient } from "@/lib/supabase/server";
 
 const CURRENT_PATH = "/leader/kepanitiaan";
@@ -24,6 +26,7 @@ export default async function KepanitiaanListPage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
+  const template = await loadBudgetTemplate(supabase);
   const { data } = await supabase
     .from("kepanitiaan_site")
     .select("id, kepanitiaan(id, nama, logo_url), site:sites(id, nama_site)")
@@ -56,11 +59,14 @@ export default async function KepanitiaanListPage({
             Panitia instance tersebut.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild>
-            <Link href="/leader/kepanitiaan/baru">+ Buat Kepanitiaan / Tambah Site</Link>
-          </Button>
-          <LogoutButton />
+        <div className="flex w-full max-w-sm shrink-0 flex-col items-end gap-3 sm:w-auto">
+          <div className="flex gap-2">
+            <Button asChild>
+              <Link href="/leader/kepanitiaan/baru">+ Buat Kepanitiaan / Tambah Site</Link>
+            </Button>
+            <LogoutButton />
+          </div>
+          <BudgetTemplateSection template={template} className="w-full" />
         </div>
       </div>
 
