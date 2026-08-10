@@ -67,33 +67,39 @@ export function CommitteeMembersSection({
         )}
 
         {groups.map(({ bucket, members: anggotaBidang }) => (
-          <div key={bucket.id} className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 border-b pb-1">
-              <h3 className="text-sm font-semibold">{bucket.nama_bidang}</h3>
+          <div
+            key={bucket.id}
+            className="flex flex-col gap-2 overflow-hidden rounded-lg border-2 border-l-4 border-l-primary"
+          >
+            <div className="flex items-center gap-2 border-b bg-muted/60 px-4 py-2.5">
+              <h3 className="text-base font-semibold">{bucket.nama_bidang}</h3>
               <Badge variant="muted">{anggotaBidang.length} orang</Badge>
             </div>
-            {anggotaBidang.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Belum ada anggota di bidang ini.</p>
-            ) : (
-              anggotaBidang.map((member) => (
-                <CommitteeMemberRow
-                  key={member.id}
-                  member={member}
-                  buckets={buckets}
-                  updateAction={updateCommitteeMember.bind(null, member.id, currentPath)}
-                  deleteAction={deleteCommitteeMember.bind(null, member.id, currentPath)}
-                />
-              ))
-            )}
+            <div className="flex flex-col gap-2 px-4 pb-4">
+              {anggotaBidang.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Belum ada anggota di bidang ini.</p>
+              ) : (
+                anggotaBidang.map((member) => (
+                  <CommitteeMemberRow
+                    key={member.id}
+                    member={member}
+                    buckets={buckets}
+                    updateAction={updateCommitteeMember.bind(null, member.id, currentPath)}
+                    deleteAction={deleteCommitteeMember.bind(null, member.id, currentPath)}
+                  />
+                ))
+              )}
+            </div>
           </div>
         ))}
 
         {tanpaBidang.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 border-b pb-1">
-              <h3 className="text-sm font-semibold">Tanpa Bidang</h3>
+          <div className="flex flex-col gap-2 overflow-hidden rounded-lg border-2 border-l-4 border-l-muted-foreground">
+            <div className="flex items-center gap-2 border-b bg-muted/60 px-4 py-2.5">
+              <h3 className="text-base font-semibold">Tanpa Bidang</h3>
               <Badge variant="outline">{tanpaBidang.length} orang</Badge>
             </div>
+            <div className="flex flex-col gap-2 px-4 pb-4">
             <p className="text-sm text-muted-foreground">
               Anggota di bawah ini belum punya bidang. Pilih bidangnya lalu Simpan supaya masuk ke
               kelompok yang benar.
@@ -107,6 +113,7 @@ export function CommitteeMembersSection({
                 deleteAction={deleteCommitteeMember.bind(null, member.id, currentPath)}
               />
             ))}
+            </div>
           </div>
         )}
 

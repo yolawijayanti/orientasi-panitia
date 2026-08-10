@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { PageNav } from "@/components/page-nav";
-import { AccordionSection } from "@/components/ui/accordion-section";
+import { SideTabs } from "@/components/ui/side-tabs";
 import { CommitteeMembersSection, type CommitteeMember } from "@/components/committee/committee-members-section";
 import { TimelineSection, type Milestone } from "@/components/timeline/timeline-section";
 import { BucketListSection, type BucketSummary } from "@/components/buckets/bucket-list-section";
@@ -79,36 +79,50 @@ export default async function InstanceDetailPage({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <AccordionSection title="Progres Kepanitiaan & Task Board" defaultOpen>
-        <BucketListSection
-          kepanitiaanSiteId={instanceId}
-          buckets={bucketRows}
-          tasksByBucket={board.tasksByBucket}
-          progressByBucket={board.progressByBucket}
-          memberNameById={board.memberNameById}
-          masterProgress={board.masterProgress}
-          bucketSelesai={board.bucketSelesai}
-          basePath={`/leader/kepanitiaan/${instanceId}/bucket`}
-          currentPath={currentPath}
-        />
-      </AccordionSection>
-
-      <AccordionSection title="Timeline Pelaksanaan">
-        <TimelineSection
-          kepanitiaanSiteId={instanceId}
-          milestones={(milestones ?? []) as Milestone[]}
-          currentPath={currentPath}
-        />
-      </AccordionSection>
-
-      <AccordionSection title="Susunan Panitia">
-        <CommitteeMembersSection
-          kepanitiaanSiteId={instanceId}
-          members={(members ?? []) as CommitteeMember[]}
-          buckets={(buckets ?? []).map(({ id, nama_bidang }) => ({ id, nama_bidang }))}
-          currentPath={currentPath}
-        />
-      </AccordionSection>
+      <SideTabs
+        tabs={[
+          {
+            id: "progres",
+            label: "Progres & Task Board",
+            content: (
+              <BucketListSection
+                kepanitiaanSiteId={instanceId}
+                buckets={bucketRows}
+                tasksByBucket={board.tasksByBucket}
+                progressByBucket={board.progressByBucket}
+                memberNameById={board.memberNameById}
+                masterProgress={board.masterProgress}
+                bucketSelesai={board.bucketSelesai}
+                basePath={`/leader/kepanitiaan/${instanceId}/bucket`}
+                currentPath={currentPath}
+              />
+            ),
+          },
+          {
+            id: "timeline",
+            label: "Timeline Pelaksanaan",
+            content: (
+              <TimelineSection
+                kepanitiaanSiteId={instanceId}
+                milestones={(milestones ?? []) as Milestone[]}
+                currentPath={currentPath}
+              />
+            ),
+          },
+          {
+            id: "susunan",
+            label: "Susunan Panitia",
+            content: (
+              <CommitteeMembersSection
+                kepanitiaanSiteId={instanceId}
+                members={(members ?? []) as CommitteeMember[]}
+                buckets={(buckets ?? []).map(({ id, nama_bidang }) => ({ id, nama_bidang }))}
+                currentPath={currentPath}
+              />
+            ),
+          },
+        ]}
+      />
 
     </main>
   );

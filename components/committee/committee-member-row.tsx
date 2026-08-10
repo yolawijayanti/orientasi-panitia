@@ -5,6 +5,7 @@ import { Pencil } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
@@ -79,9 +80,7 @@ export function CommitteeMemberRow({
             </select>
           </div>
         )}
-        <Button type="submit" size="sm" variant="secondary">
-          Simpan
-        </Button>
+        <SubmitButton size="sm">Simpan</SubmitButton>
         <Button type="button" size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
           Batal
         </Button>
