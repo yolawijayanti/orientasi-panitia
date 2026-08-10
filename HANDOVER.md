@@ -127,7 +127,7 @@ Jangan tambahkan tabel/kolom untuk: notulensi meeting, game path journey, leader
 - [ ] Fase 7 — Notifikasi
 - [ ] Fase 8 — Polish Desain
 
-**Fase 5 -- kode sudah lewat beberapa ronde revisi live dengan Yolanda dan migration-nya sudah jalan, TAPI verifikasi live end-to-end (download template + upload submission + status berubah jadi "Lengkap") dengan tampilan FINAL belum dikonfirmasi eksplisit -- jangan dicentang selesai sebelum checklist di Catatan Teknis Fase 5 tuntas.** Ringkasan perjalanan revisinya (detail lengkap tiap poin ada di Catatan Teknis Fase 5):
+**Fase 5 -- selesai & terverifikasi live sepenuhnya oleh Yolanda** (checklist 8 langkah di Catatan Teknis Fase 5 -- download template per-event, upload submission sebagai panitia, status berubah "Lengkap", isolasi antar-instance, semua dengan tampilan FINAL -- sudah dijalankan & lolos). Ringkasan perjalanan revisinya (detail lengkap tiap poin ada di Catatan Teknis Fase 5):
 1. Build awal: widget berdampingan dengan Task Board di bucket "Budgeting" (bukan menggantikan), pakai file placeholder (`supabase/seed/template-budgeting-placeholder.xlsx`) karena template asli belum ada -- 2 keputusan ini diambil Yolanda di awal sesi sebelum kode ditulis.
 2. Revisi: tombol download/lihat-file diganti jadi `Button` ber-ikon (sebelumnya teks underline biasa, dikira tidak bisa diklik oleh Yolanda).
 3. Revisi besar -- lokasi widget dipindah keluar dari bucket page: leader dapat tombol "Budgeting Template" di kanan tiap kartu event (halaman Manajemen Kepanitiaan); panitia dapat tab baru "Submit Budget" di Workspace (urutan tab: Progres & Task Board | Tugas Saya | Timeline Pelaksanaan | Susunan Panitia | Submit Budget).
@@ -136,11 +136,9 @@ Jangan tambahkan tabel/kolom untuk: notulensi meeting, game path journey, leader
 
 **Migration yang sudah dijalankan & dikonfirmasi Yolanda**: `20260810000009_fase5_budget_storage.sql` (setelah `...0001` s/d `...0008` dari fase-fase sebelumnya).
 
-**Yang MASIH perlu dikonfirmasi Yolanda sebelum Fase 5 dicentang selesai** -- checklist di Catatan Teknis Fase 5 (poin 9 soal alat bantu Susunan Panitia sudah tidak berlaku karena alat itu sudah dihapus, lihat poin 5 di atas), intinya: coba alur nyata download template per-event, upload submission sebagai panitia, pastikan status berubah "Lengkap" -- semua dengan tampilan FINAL (tombol di kartu event untuk leader, tab "Submit Budget" untuk panitia). Belum pernah dites eksplisit sejak lokasi widget-nya pindah beberapa kali.
+**Fase 6 dikerjakan paralel dengan checklist Fase 5 di atas** (izin eksplisit Yolanda, bukan penyimpangan diam-diam dari urutan "satu fase per session") -- sekarang giliran Fase 6 yang menunggu verifikasi live.
 
-**Fase 6 boleh dikerjakan lebih dulu di sesi baru, PARALEL dengan checklist Fase 5 di atas** -- ini permintaan eksplisit Yolanda, bukan penyimpangan diam-diam dari urutan "satu fase per session": Fase 6 (dashboard ringkasan lintas-instance) cuma baca kolom `budget_submissions.status` yang skemanya sudah stabil sejak migration Fase 1, tidak bergantung ke lokasi UI widget budgeting yang masih berubah-ubah. **Sesi yang mengerjakan Fase 6 tidak perlu menunggu checklist Fase 5 tuntas**, tapi checklist itu tetap harus diselesaikan (oleh Yolanda sendiri, atau sesi lain) sebelum Fase 5 resmi dicentang `[x]` di section 8 atas.
-
-**Fase 6 -- kode sudah selesai ditulis (sesi ini), belum diverifikasi live.** Dikerjakan sesuai izin "Fase 6 boleh dikerjakan lebih dulu, PARALEL dengan checklist Fase 5" di atas -- murni membaca tabel yang sudah ada (termasuk `budget_submissions`, migration `...0009` sudah dikonfirmasi jalan), tidak ada migration baru. Detail lengkap ada di **Catatan Teknis Fase 6** di bawah.
+**Fase 6 -- kode sudah selesai ditulis, belum diverifikasi live.** Murni membaca tabel yang sudah ada (termasuk `budget_submissions`, migration `...0009` sudah dikonfirmasi jalan), tidak ada migration baru. Checklist verifikasi live-nya (6 langkah) ada di **Catatan Teknis Fase 6** di bawah.
 
 ## 9. Catatan Teknis per Fase
 
