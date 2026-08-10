@@ -9,19 +9,10 @@ import { cn } from "@/lib/utils";
 import { submitBudget } from "@/lib/budget/actions";
 import type { BudgetSubmission } from "@/lib/budget/submission";
 import type { BudgetTemplate } from "@/lib/budget/template";
-
-/** Pola warna sama seperti STATUS_CHIP_CLASSNAME (lib/tasks/format.ts) --
- * "belum" pink seperti Assigned, "lengkap" hijau seperti Done. Tidak dipakai
- * StatusPill langsung karena tipenya terikat ke ItemStatus 3-status, bukan
- * belum/lengkap. */
-const STATUS_LABEL: Record<BudgetSubmission["status"], string> = {
-  belum: "Belum Lengkap",
-  lengkap: "Lengkap",
-};
-const STATUS_CLASSNAME: Record<BudgetSubmission["status"], string> = {
-  belum: "border-pink-300 bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-200",
-  lengkap: "border-green-300 bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200",
-};
+import {
+  BUDGET_STATUS_LABEL as STATUS_LABEL,
+  BUDGET_STATUS_BADGE_CLASSNAME as STATUS_CLASSNAME,
+} from "@/lib/budget/format";
 
 /**
  * Widget khusus bucket "Budgeting" (is_budgeting=true) -- berdampingan
