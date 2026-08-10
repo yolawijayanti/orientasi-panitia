@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Orientasi Panitia",
+  title: "PanitYAY",
   description: "Aplikasi web internal untuk mengelola kepanitiaan event.",
 };
 

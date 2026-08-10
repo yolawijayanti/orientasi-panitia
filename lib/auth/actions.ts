@@ -32,7 +32,7 @@ export async function login(
 
   if (!profile) {
     await supabase.auth.signOut();
-    return { error: "Akun ini belum terdaftar di sistem orientasi panitia. Hubungi leader." };
+    return { error: "Akun ini belum terdaftar di PanitYAY. Hubungi leader." };
   }
 
   redirect(profile.role === "leader" ? "/leader/dashboard" : "/panitia/dashboard");

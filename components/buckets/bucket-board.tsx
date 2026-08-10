@@ -2,8 +2,8 @@ import Link from "next/link";
 
 import { BucketColumnHeader } from "@/components/buckets/bucket-column-header";
 import { renameBucket, deleteBucket } from "@/lib/buckets/actions";
-import { STATUS_CHIP_CLASSNAME, STATUS_LABEL, formatDeadline } from "@/lib/tasks/format";
-import { cn } from "@/lib/utils";
+import { formatDeadline } from "@/lib/tasks/format";
+import { StatusPill } from "@/components/tasks/status-pill";
 import type { ItemStatus } from "@/lib/tasks/actions";
 import type { Progress } from "@/lib/tasks/progress";
 import type { BucketSummary } from "@/components/buckets/bucket-list-section";
@@ -79,14 +79,7 @@ export function BucketBoard({
                   >
                     <span className="text-sm font-medium">{task.judul}</span>
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span
-                        className={cn(
-                          "rounded-full border px-2 py-0.5 text-[10px] font-medium",
-                          STATUS_CHIP_CLASSNAME[task.status],
-                        )}
-                      >
-                        {STATUS_LABEL[task.status]}
-                      </span>
+                      <StatusPill status={task.status} className="px-2 py-0 text-[10px]" />
                       {task.subtaskTotal > 0 && (
                         <span className="text-[10px] text-muted-foreground">
                           {task.subtaskDone}/{task.subtaskTotal} subtugas

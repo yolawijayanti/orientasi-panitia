@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil } from "lucide-react";
+import { CheckCircle2, Pencil } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,10 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { AssigneeSelect, type AssignableMember } from "@/components/tasks/assignee-select";
 import { StatusChoice } from "@/components/tasks/status-choice";
 import type { ItemStatus } from "@/lib/tasks/actions";
-import { STATUS_BADGE_VARIANT, STATUS_LABEL, formatDeadline } from "@/lib/tasks/format";
+import { formatDeadline } from "@/lib/tasks/format";
+import { StatusPill } from "@/components/tasks/status-pill";
+import { useSaveFlash } from "@/lib/hooks/use-save-flash";
+import { cn } from "@/lib/utils";
 
 export type Subtask = {
   id: string;
@@ -35,10 +38,12 @@ export function SubtaskRow({
   deleteAction: (formData: FormData) => Promise<void>;
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [justSaved, flashSaved] = useSaveFlash();
 
   async function handleSave(formData: FormData) {
     await updateAction(formData);
     setIsEditing(false);
+    flashSaved();
   }
 
   if (isEditing) {
@@ -79,14 +84,23 @@ export function SubtaskRow({
   const assignee = members.find((member) => member.id === subtask.assignee_id);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-2.5">
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-2 rounded-md border p-2.5 transition-colors",
+        justSaved && "border-green-400 bg-green-50 dark:bg-green-950",
+      )}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm">{subtask.judul}</span>
-        <Badge variant={STATUS_BADGE_VARIANT[subtask.status]}>
-          {STATUS_LABEL[subtask.status]}
-        </Badge>
+        <StatusPill status={subtask.status} />
         {assignee && <Badge variant="outline">{assignee.nama}</Badge>}
         <span className="text-xs text-muted-foreground">{formatDeadline(subtask.deadline)}</span>
+        {justSaved && (
+          <span className="flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-300">
+            <CheckCircle2 className="size-3.5" />
+            Tersimpan
+          </span>
+        )}
       </div>
       <div className="flex gap-2">
         <Button type="button" size="sm" variant="outline" onClick={() => setIsEditing(true)}>

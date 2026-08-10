@@ -14,18 +14,16 @@ export const STATUS_LABEL: Record<ItemStatus, string> = {
 /** Urutan tampil untuk pilihan status (kiri -> kanan mengikuti alur kerja). */
 export const STATUS_ORDER: ItemStatus[] = ["belum", "proses", "selesai"];
 
-export const STATUS_BADGE_VARIANT: Record<ItemStatus, "outline" | "secondary" | "default"> = {
-  belum: "outline",
-  proses: "secondary",
-  selesai: "default",
-};
-
-/** Warna chip status -- dipakai di board Trello & radio single-choice. */
+/**
+ * Warna kapsul status, dipakai SERAGAM di semua tempat status muncul:
+ * kartu board, ringkasan tugas/subtugas, radio single-choice, dan Tugas Saya.
+ * Assigned = pink, In Progress = kuning, Done = hijau.
+ */
 export const STATUS_CHIP_CLASSNAME: Record<ItemStatus, string> = {
-  belum: "border-slate-300 bg-slate-50 text-slate-700 dark:bg-slate-900 dark:text-slate-300",
-  proses: "border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
+  belum: "border-pink-300 bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-200",
+  proses: "border-yellow-300 bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-200",
   selesai:
-    "border-emerald-300 bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
+    "border-green-300 bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200",
 };
 
 export function formatDeadline(deadline: string | null): string {

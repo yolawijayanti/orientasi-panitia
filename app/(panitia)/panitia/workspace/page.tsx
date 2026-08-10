@@ -7,7 +7,9 @@ import {
   CommitteeMembersSection,
   type CommitteeMember,
 } from "@/components/committee/committee-members-section";
+import { MyTasksSection } from "@/components/tasks/my-tasks-section";
 import { loadBucketBoardData } from "@/lib/buckets/board-data";
+import { loadMyTasks } from "@/lib/tasks/my-tasks";
 import { createClient } from "@/lib/supabase/server";
 
 const CURRENT_PATH = "/panitia/workspace";
@@ -74,6 +76,7 @@ export default async function PanitiaWorkspacePage({
 
   const bucketRows = (buckets ?? []) as BucketSummary[];
   const board = await loadBucketBoardData(supabase, kepanitiaanSiteId, bucketRows);
+  const myTasks = await loadMyTasks(supabase, kepanitiaanSiteId, authData.user.email);
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
@@ -106,6 +109,13 @@ export default async function PanitiaWorkspacePage({
                 basePath="/panitia/bucket"
                 currentPath={CURRENT_PATH}
               />
+            ),
+          },
+          {
+            id: "tugas-saya",
+            label: "Tugas Saya",
+            content: (
+              <MyTasksSection matched={myTasks.matchedMemberIds.length > 0} tasks={myTasks.tasks} />
             ),
           },
           {
