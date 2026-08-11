@@ -24,9 +24,9 @@ const CURRENT_PATH = "/panitia/workspace";
 export default async function PanitiaWorkspacePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, message } = await searchParams;
   const supabase = await createClient();
   const currentUser = await getCurrentUser();
 
@@ -95,6 +95,7 @@ export default async function PanitiaWorkspacePage({
       />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
+      {message && <p className="text-sm text-muted-foreground">{message}</p>}
 
       <SideTabs
         tabs={[
