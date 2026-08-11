@@ -71,11 +71,15 @@ export function CommitteeMembersSection({
         <summary className="cursor-pointer text-sm font-medium">
           Tambah Banyak Sekaligus (Upload Excel/CSV)
         </summary>
-        <form
-          action={bulkAddAction}
-          encType="multipart/form-data"
-          className="mt-3 flex flex-wrap items-end gap-2"
-        >
+        {/*
+         * TANPA `encType="multipart/form-data"` -- kalau `action` adalah
+         * Server Action (function), React sudah otomatis mengirim FormData
+         * (termasuk File) apa adanya; menulis `encType` manual di sini malah
+         * error di console ("React provides those automatically. They will
+         * get overridden.") karena dianggap konflik dengan penanganan
+         * otomatisnya.
+         */}
+        <form action={bulkAddAction} className="mt-3 flex flex-wrap items-end gap-2">
           <div className="flex min-w-64 flex-1 flex-col gap-1">
             <Label htmlFor="file-bulk">File Excel/CSV</Label>
             <input
