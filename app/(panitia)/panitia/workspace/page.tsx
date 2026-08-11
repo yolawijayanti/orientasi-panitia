@@ -1,5 +1,6 @@
 import { LogoutButton } from "@/components/logout-button";
 import { PageNav } from "@/components/page-nav";
+import { PageHeader } from "@/components/page-header";
 import { PanitiaNotificationBell } from "@/components/notifications/panitia-notification-bell";
 import { SideTabs } from "@/components/ui/side-tabs";
 import { BucketListSection, type BucketSummary } from "@/components/buckets/bucket-list-section";
@@ -15,6 +16,7 @@ import { loadMyTasks } from "@/lib/tasks/my-tasks";
 import { loadCandidateAccounts } from "@/lib/committee/candidate-accounts";
 import { loadBudgetTemplate } from "@/lib/budget/template";
 import { loadBudgetSubmission } from "@/lib/budget/submission";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { createClient } from "@/lib/supabase/server";
 
 const CURRENT_PATH = "/panitia/workspace";
@@ -26,19 +28,13 @@ export default async function PanitiaWorkspacePage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
+  const currentUser = await getCurrentUser();
 
-  if (!authData.user) {
+  if (!currentUser) {
     return null;
   }
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("kepanitiaan_site_id")
-    .eq("id", authData.user.id)
-    .single();
-
-  const kepanitiaanSiteId = profile?.kepanitiaan_site_id as string | null | undefined;
+  const kepanitiaanSiteId = currentUser.kepanitiaanSiteId;
 
   if (!kepanitiaanSiteId) {
     return (
@@ -81,7 +77,7 @@ export default async function PanitiaWorkspacePage({
 
   const bucketRows = (buckets ?? []) as BucketSummary[];
   const board = await loadBucketBoardData(supabase, kepanitiaanSiteId, bucketRows);
-  const myTasks = await loadMyTasks(supabase, kepanitiaanSiteId, authData.user.email);
+  const myTasks = await loadMyTasks(supabase, kepanitiaanSiteId, currentUser.email);
   const candidateAccounts = await loadCandidateAccounts(supabase, kepanitiaanSiteId);
   const kepanitiaanId = typedInstance?.kepanitiaan?.id;
   const [budgetTemplate, budgetSubmission] = await Promise.all([
@@ -91,15 +87,12 @@ export default async function PanitiaWorkspacePage({
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <PageNav homeHref="/panitia/dashboard" right={<PanitiaNotificationBell />} />
-          <h1 className="mt-1 text-xl font-semibold">
-            {typedInstance?.kepanitiaan?.nama} @ {typedInstance?.site?.nama_site}
-          </h1>
-        </div>
-        <LogoutButton />
-      </div>
+      <PageHeader
+        nav={<PageNav homeHref="/panitia/dashboard" />}
+        title={`${typedInstance?.kepanitiaan?.nama} @ ${typedInstance?.site?.nama_site}`}
+        bell={<PanitiaNotificationBell />}
+        actions={<LogoutButton />}
+      />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

@@ -160,9 +160,9 @@ export function TaskItem({
               <Input id={`subtugas-deadline-baru-${task.id}`} name="deadline" type="date" />
             </div>
             <AssigneeSelect members={members} value={null} idPrefix={`subtugas-baru-${task.id}`} />
-            <Button type="submit" size="sm">
+            <SubmitButton size="sm" pendingLabel="Menambah…">
               + Tambah Subtugas
-            </Button>
+            </SubmitButton>
           </form>
         </div>
       )}

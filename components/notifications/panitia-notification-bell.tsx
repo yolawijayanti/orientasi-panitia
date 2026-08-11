@@ -3,28 +3,26 @@ import { Suspense } from "react";
 import { NotificationBell, NotificationBellSkeleton } from "@/components/notifications/notification-bell";
 import { loadPanitiaNotifications } from "@/lib/notifications/feed";
 import { countUnread, loadNotificationsSeenAt } from "@/lib/notifications/unread";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { createClient } from "@/lib/supabase/server";
 
-/** Sama alasannya seperti LeaderNotificationBellData -- dipisah supaya bisa dibungkus <Suspense>, tidak menahan render halaman. */
+/**
+ * Sama alasannya seperti LeaderNotificationBellData -- dipisah supaya
+ * bisa dibungkus <Suspense>, tidak menahan render halaman. `getCurrentUser()`
+ * (ber-`React.cache()`) dipakai supaya lookup auth+profile-nya SHARED
+ * dengan pemanggil lain di request yang sama -- lihat lib/auth/current-user.ts.
+ */
 async function PanitiaNotificationBellData() {
   const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
+  const currentUser = await getCurrentUser();
 
-  if (!authData.user) return <NotificationBell notifications={[]} unreadCount={0} />;
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("kepanitiaan_site_id")
-    .eq("id", authData.user.id)
-    .maybeSingle();
-
-  const kepanitiaanSiteId = profile?.kepanitiaan_site_id as string | null | undefined;
+  if (!currentUser) return <NotificationBell notifications={[]} unreadCount={0} />;
 
   const [notifications, seenAt] = await Promise.all([
-    kepanitiaanSiteId
-      ? loadPanitiaNotifications(supabase, kepanitiaanSiteId, authData.user.email)
+    currentUser.kepanitiaanSiteId
+      ? loadPanitiaNotifications(supabase, currentUser.kepanitiaanSiteId, currentUser.email)
       : Promise.resolve([]),
-    loadNotificationsSeenAt(supabase, authData.user.id),
+    loadNotificationsSeenAt(supabase, currentUser.id),
   ]);
 
   return (
@@ -33,11 +31,9 @@ async function PanitiaNotificationBellData() {
 }
 
 /**
- * Dipasang satu baris dengan `PageNav` (Kembali/Home) di halaman panitia
- * yang punya PageNav, dan di samping LogoutButton untuk `/panitia/dashboard`
- * yang tidak punya PageNav. TIDAK lagi dipasang lewat
- * `app/(panitia)/layout.tsx` (dihapus) -- lihat alasan lengkap di
- * LeaderNotificationBell (komponen kembarannya untuk leader).
+ * Dipasang di `app/(panitia)/layout.tsx`, di strip khusus di atas
+ * `{children}` -- lihat komentar lengkap di `LeaderNotificationBell`
+ * (komponen kembarannya untuk leader) untuk alasan posisinya.
  */
 export function PanitiaNotificationBell() {
   return (

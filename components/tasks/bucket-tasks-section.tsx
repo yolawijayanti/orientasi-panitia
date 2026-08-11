@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SubmitButton } from "@/components/submit-button";
 import { ProgressBar } from "@/components/buckets/progress-bar";
 import { TaskItem, type Task } from "@/components/tasks/task-item";
 import type { Subtask } from "@/components/tasks/subtask-row";
@@ -91,9 +91,9 @@ export function BucketTasksSection({
             <Input id="tugas-deadline-baru" name="deadline" type="date" />
           </div>
           <AssigneeSelect members={members} value={null} idPrefix="tugas-baru" />
-          <Button type="submit" size="sm">
+          <SubmitButton size="sm" pendingLabel="Menambah…">
             + Tambah Tugas
-          </Button>
+          </SubmitButton>
         </form>
       </CardContent>
     </Card>

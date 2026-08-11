@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { LogoutButton } from "@/components/logout-button";
 import { PageNav } from "@/components/page-nav";
+import { PageHeader } from "@/components/page-header";
 import { LeaderNotificationBell } from "@/components/notifications/leader-notification-bell";
 import { KepanitiaanHeader } from "@/components/kepanitiaan/kepanitiaan-header";
 import { deleteKepanitiaan, renameKepanitiaan } from "@/lib/kepanitiaan/actions";
@@ -61,22 +62,25 @@ export default async function KepanitiaanListPage({
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <PageNav homeHref="/leader/dashboard" right={<LeaderNotificationBell />} />
-          <h1 className="mt-1 text-xl font-semibold">Manajemen Kepanitiaan</h1>
+      <PageHeader
+        nav={<PageNav homeHref="/leader/dashboard" />}
+        title="Manajemen Kepanitiaan"
+        description={
           <p className="text-sm text-muted-foreground">
             Pilih salah satu site di bawah untuk membuka Timeline, Bucket Tugas, dan Susunan
             Panitia instance tersebut.
           </p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild>
-            <Link href="/leader/kepanitiaan/baru">+ Buat Kepanitiaan / Tambah Site</Link>
-          </Button>
-          <LogoutButton />
-        </div>
-      </div>
+        }
+        bell={<LeaderNotificationBell />}
+        actions={
+          <>
+            <Button asChild>
+              <Link href="/leader/kepanitiaan/baru">+ Buat Kepanitiaan / Tambah Site</Link>
+            </Button>
+            <LogoutButton />
+          </>
+        }
+      />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
