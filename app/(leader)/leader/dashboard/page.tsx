@@ -43,9 +43,8 @@ export default async function LeaderDashboardPage({
         <Link href="/leader/kepanitiaan">Kelola Kepanitiaan</Link>
       </Button>
       <p className="text-sm text-muted-foreground">
-        Timeline, Bucket Tugas, dan Susunan Panitia dikelola <strong>per instance</strong>{" "}
-        (kepanitiaan + site), bukan global — buka Kelola Kepanitiaan lalu pilih site-nya untuk
-        masuk ke ketiganya.
+        Selamat datang, Leader! Klik <strong>Kelola Kepanitiaan</strong> untuk melihat detil per
+        event atau pilih event per site yang hendak kamu pantau di bawah ini.
       </p>
 
       <InstancePicker groups={groups} selectedIds={selectedIds} />
