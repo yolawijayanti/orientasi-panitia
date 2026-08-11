@@ -1,8 +1,11 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { CommitteeMemberRow } from "@/components/committee/committee-member-row";
 import { AddMemberRow } from "@/components/committee/add-member-row";
 import {
   addCommitteeMember,
+  bulkAddCommitteeMembers,
   updateCommitteeMember,
   deleteCommitteeMember,
 } from "@/lib/committee/actions";
@@ -36,6 +39,7 @@ export function CommitteeMembersSection({
   candidateAccounts,
   currentPath,
   error,
+  message,
 }: {
   kepanitiaanSiteId: string;
   members: CommitteeMember[];
@@ -43,7 +47,9 @@ export function CommitteeMembersSection({
   candidateAccounts: CandidateAccount[];
   currentPath: string;
   error?: string;
+  message?: string;
 }) {
+  const bulkAddAction = bulkAddCommitteeMembers.bind(null, kepanitiaanSiteId, currentPath);
   const groups = buckets.map((bucket) => ({
     bucket,
     members: sortLeaderFirst(members.filter((member) => member.bucket_id === bucket.id)),
@@ -59,6 +65,37 @@ export function CommitteeMembersSection({
   return (
     <div className="flex flex-col gap-6">
       {error && <p className="text-sm text-destructive">{error}</p>}
+      {message && <p className="text-sm text-muted-foreground">{message}</p>}
+
+      <details className="rounded-lg border p-4">
+        <summary className="cursor-pointer text-sm font-medium">
+          Tambah Banyak Sekaligus (Upload Excel/CSV)
+        </summary>
+        <form
+          action={bulkAddAction}
+          encType="multipart/form-data"
+          className="mt-3 flex flex-wrap items-end gap-2"
+        >
+          <div className="flex min-w-64 flex-1 flex-col gap-1">
+            <Label htmlFor="file-bulk">File Excel/CSV</Label>
+            <input
+              id="file-bulk"
+              name="file"
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              required
+              className="text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium"
+            />
+            <p className="text-xs text-muted-foreground">
+              Kolom: Nama (wajib), Email (wajib, harus akun panitia yang sudah terdaftar), Role,
+              Bidang (opsional).
+            </p>
+          </div>
+          <Button type="submit" size="sm" variant="secondary">
+            Upload
+          </Button>
+        </form>
+      </details>
 
       {members.length === 0 && (
         <p className="text-sm text-muted-foreground">Belum ada anggota panitia.</p>

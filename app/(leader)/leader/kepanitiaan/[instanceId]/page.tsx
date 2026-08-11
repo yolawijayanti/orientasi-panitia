@@ -18,10 +18,10 @@ export default async function InstanceDetailPage({
   searchParams,
 }: {
   params: Promise<{ instanceId: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string }>;
 }) {
   const { instanceId } = await params;
-  const { error } = await searchParams;
+  const { error, message } = await searchParams;
   const supabase = await createClient();
 
   const { data: instance } = await supabase
@@ -83,6 +83,7 @@ export default async function InstanceDetailPage({
       />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
+      {message && <p className="text-sm text-muted-foreground">{message}</p>}
 
       <SideTabs
         tabs={[
