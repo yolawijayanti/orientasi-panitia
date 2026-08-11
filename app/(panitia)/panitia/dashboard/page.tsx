@@ -4,6 +4,7 @@ import { CalendarDays, ClipboardList, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogoutButton } from "@/components/logout-button";
+import { PanitiaNotificationBell } from "@/components/notifications/panitia-notification-bell";
 import { ProgressRing } from "@/components/buckets/progress-ring";
 import { loadBucketBoardData } from "@/lib/buckets/board-data";
 import { createClient } from "@/lib/supabase/server";
@@ -27,7 +28,10 @@ export default async function PanitiaDashboardPage() {
       <main className="flex min-h-screen flex-col gap-4 p-8">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Selamat datang di PanitiYAY</h1>
-          <LogoutButton />
+          <div className="flex items-center gap-2">
+            <PanitiaNotificationBell />
+            <LogoutButton />
+          </div>
         </div>
         <p className="text-muted-foreground">
           Akun ini belum terhubung ke instance kepanitiaan manapun. Hubungi leader.
@@ -82,7 +86,10 @@ export default async function PanitiaDashboardPage() {
             Masuk sebagai {authData.user?.email}
           </p>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-2">
+          <PanitiaNotificationBell />
+          <LogoutButton />
+        </div>
       </div>
 
       <Card>

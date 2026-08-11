@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/logout-button";
+import { LeaderNotificationBell } from "@/components/notifications/leader-notification-bell";
 import { InstancePicker } from "@/components/dashboard/instance-picker";
 import { InstanceOverviewCard } from "@/components/dashboard/instance-overview-card";
 import { loadInstanceGroups, loadInstanceOverview } from "@/lib/dashboard/leader-overview";
@@ -32,7 +33,10 @@ export default async function LeaderDashboardPage({
           <h1 className="text-xl font-semibold">Dashboard Kepanitiaan (Leader)</h1>
           <p className="text-sm text-muted-foreground">Masuk sebagai {data.user?.email}</p>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-2">
+          <LeaderNotificationBell />
+          <LogoutButton />
+        </div>
       </div>
 
       <Button asChild className="w-fit">
