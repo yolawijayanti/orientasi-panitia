@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Download, FileText, ImagePlus, Pencil } from "lucide-react";
+import { Banknote, CheckCircle2, Download, ImagePlus, Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -126,7 +126,7 @@ export function KepanitiaanHeader({
                 setIsBudgetOpen(true);
               }}
             >
-              <FileText className="size-3.5" />
+              <Banknote className="size-3.5" />
               Budgeting Template
             </Button>
           )}

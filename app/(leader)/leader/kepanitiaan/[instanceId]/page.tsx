@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { PageNav } from "@/components/page-nav";
+import { LeaderNotificationBell } from "@/components/notifications/leader-notification-bell";
 import { SideTabs } from "@/components/ui/side-tabs";
 import { CommitteeMembersSection, type CommitteeMember } from "@/components/committee/committee-members-section";
 import { TimelineSection, type Milestone } from "@/components/timeline/timeline-section";
@@ -64,7 +65,7 @@ export default async function InstanceDetailPage({
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
       <div>
-        <PageNav homeHref="/leader/dashboard" />
+        <PageNav homeHref="/leader/dashboard" right={<LeaderNotificationBell />} />
         <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
           <h1 className="text-xl font-semibold">{namaInstance}</h1>
           <form action={deleteAction}>

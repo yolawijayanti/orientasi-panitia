@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { PageNav } from "@/components/page-nav";
+import { LeaderNotificationBell } from "@/components/notifications/leader-notification-bell";
 import {
   BucketTasksSection,
   type Task,
@@ -81,7 +82,7 @@ export default async function LeaderBucketDetailPage({
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
       <div>
-        <PageNav homeHref="/leader/dashboard" />
+        <PageNav homeHref="/leader/dashboard" right={<LeaderNotificationBell />} />
         <h1 className="mt-1 text-xl font-semibold">
           {bucket.nama_bidang}
           {bucket.is_budgeting && (

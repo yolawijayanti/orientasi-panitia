@@ -49,7 +49,7 @@ export function NotificationBell({
       </Button>
 
       {localUnread > 0 && (
-        <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">
+        <span className="pointer-events-none absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">
           {localUnread > 9 ? "9+" : localUnread}
         </span>
       )}
@@ -60,5 +60,14 @@ export function NotificationBell({
         </div>
       )}
     </div>
+  );
+}
+
+/** Fallback <Suspense> saat NotificationBell*Server masih memuat data -- bell statis, belum interaktif, tidak menahan render sisa halaman. */
+export function NotificationBellSkeleton() {
+  return (
+    <Button type="button" variant="outline" size="icon" aria-label="Notifikasi" disabled>
+      <Bell className="size-4" />
+    </Button>
   );
 }

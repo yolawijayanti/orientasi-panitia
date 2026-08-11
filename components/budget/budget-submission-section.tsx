@@ -1,4 +1,4 @@
-import { Download, FileText } from "lucide-react";
+import { Banknote, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,7 +49,7 @@ export function BudgetSubmissionSection({
           {template ? (
             <Button asChild size="sm" className="w-fit">
               <a href={template.url} download>
-                <Download className="size-4" />
+                <Banknote className="size-4" />
                 Budgeting Template
               </a>
             </Button>
