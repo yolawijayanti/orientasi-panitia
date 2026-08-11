@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/logout-button";
+import { PageHeader } from "@/components/page-header";
+import { LeaderNotificationBell } from "@/components/notifications/leader-notification-bell";
 import { InstancePicker } from "@/components/dashboard/instance-picker";
 import { InstanceOverviewCard } from "@/components/dashboard/instance-overview-card";
 import { loadInstanceGroups, loadInstanceOverview } from "@/lib/dashboard/leader-overview";
@@ -28,13 +30,14 @@ export default async function LeaderDashboardPage({
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Dashboard Kepanitiaan (Leader)</h1>
+      <PageHeader
+        title="Dashboard Kepanitiaan (Leader)"
+        description={
           <p className="text-sm text-muted-foreground">Masuk sebagai {currentUser?.email}</p>
-        </div>
-        <LogoutButton />
-      </div>
+        }
+        bell={<LeaderNotificationBell />}
+        actions={<LogoutButton />}
+      />
 
       <Button asChild className="w-fit">
         <Link href="/leader/kepanitiaan">Kelola Kepanitiaan</Link>

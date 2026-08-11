@@ -51,9 +51,9 @@ export function InstancePicker({
                       name="instance"
                       value={instance.id}
                       defaultChecked={selectedIds.includes(instance.id)}
-                      className="size-4 accent-primary"
+                      className="size-4 shrink-0 accent-primary"
                     />
-                    {instance.siteNama}
+                    <span>{instance.siteNama}</span>
                   </label>
                 ))}
               </div>

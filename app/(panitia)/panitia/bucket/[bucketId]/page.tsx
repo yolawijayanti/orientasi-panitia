@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 
 import { LogoutButton } from "@/components/logout-button";
 import { PageNav } from "@/components/page-nav";
+import { PageHeader } from "@/components/page-header";
+import { PanitiaNotificationBell } from "@/components/notifications/panitia-notification-bell";
 import {
   BucketTasksSection,
   type Task,
@@ -79,18 +81,19 @@ export default async function BucketDetailPanitiaPage({
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <PageNav homeHref="/panitia/dashboard" />
-          <h1 className="mt-1 text-xl font-semibold">
+      <PageHeader
+        nav={<PageNav homeHref="/panitia/dashboard" />}
+        title={
+          <>
             {bucket.nama_bidang}
             {bucket.is_budgeting && (
               <span className="ml-2 text-sm font-normal text-muted-foreground">(Budgeting)</span>
             )}
-          </h1>
-        </div>
-        <LogoutButton />
-      </div>
+          </>
+        }
+        bell={<PanitiaNotificationBell />}
+        actions={<LogoutButton />}
+      />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

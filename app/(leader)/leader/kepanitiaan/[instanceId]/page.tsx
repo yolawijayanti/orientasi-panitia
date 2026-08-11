@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 
 import { PageNav } from "@/components/page-nav";
+import { PageHeader } from "@/components/page-header";
+import { LeaderNotificationBell } from "@/components/notifications/leader-notification-bell";
 import { SideTabs } from "@/components/ui/side-tabs";
 import { CommitteeMembersSection, type CommitteeMember } from "@/components/committee/committee-members-section";
 import { TimelineSection, type Milestone } from "@/components/timeline/timeline-section";
@@ -63,10 +65,11 @@ export default async function InstanceDetailPage({
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
-      <div>
-        <PageNav homeHref="/leader/dashboard" />
-        <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-xl font-semibold">{namaInstance}</h1>
+      <PageHeader
+        nav={<PageNav homeHref="/leader/dashboard" />}
+        title={namaInstance}
+        bell={<LeaderNotificationBell />}
+        actions={
           <form action={deleteAction}>
             <ConfirmSubmitButton
               size="sm"
@@ -76,8 +79,8 @@ export default async function InstanceDetailPage({
               Hapus Instance Ini
             </ConfirmSubmitButton>
           </form>
-        </div>
-      </div>
+        }
+      />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

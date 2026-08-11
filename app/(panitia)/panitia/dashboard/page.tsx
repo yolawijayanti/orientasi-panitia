@@ -4,6 +4,8 @@ import { CalendarDays, ClipboardList, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogoutButton } from "@/components/logout-button";
+import { PageHeader } from "@/components/page-header";
+import { PanitiaNotificationBell } from "@/components/notifications/panitia-notification-bell";
 import { ProgressRing } from "@/components/buckets/progress-ring";
 import { loadBucketBoardData } from "@/lib/buckets/board-data";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -17,10 +19,11 @@ export default async function PanitiaDashboardPage() {
   if (!kepanitiaanSiteId) {
     return (
       <main className="flex min-h-screen flex-col gap-4 p-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Selamat datang di PanitiYAY</h1>
-          <LogoutButton />
-        </div>
+        <PageHeader
+          title="Selamat datang di PanitiYAY"
+          bell={<PanitiaNotificationBell />}
+          actions={<LogoutButton />}
+        />
         <p className="text-muted-foreground">
           Akun ini belum terhubung ke instance kepanitiaan manapun. Hubungi leader.
         </p>
@@ -67,15 +70,15 @@ export default async function PanitiaDashboardPage() {
 
   return (
     <main className="flex min-h-screen flex-col gap-6 p-8">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Selamat datang di PanitiYAY!</h1>
-          <p className="text-sm text-muted-foreground">
-            Masuk sebagai {currentUser?.email}
-          </p>
-        </div>
-        <LogoutButton />
-      </div>
+      <PageHeader
+        title="Selamat datang di PanitiYAY!"
+        titleClassName="text-2xl font-bold tracking-tight"
+        description={
+          <p className="text-sm text-muted-foreground">Masuk sebagai {currentUser?.email}</p>
+        }
+        bell={<PanitiaNotificationBell />}
+        actions={<LogoutButton />}
+      />
 
       <Card>
         <CardHeader>

@@ -15,10 +15,12 @@ import { Button } from "@/components/ui/button";
  * Sebelumnya (Revisi 5) komponen ini punya slot `right` untuk lonceng
  * notifikasi, supaya satu baris dengan Kembali/Home -- tapi posisinya
  * jadi beda-beda tergantung header tiap halaman (dilaporkan Yolanda
- * sebagai "pindah-pindah"). Revisi 6: lonceng dipindah ke posisi `fixed`
- * lewat layout (lihat app/(leader)/layout.tsx & app/(panitia)/layout.tsx),
- * jadi slot itu dihapus lagi dari sini -- konsisten lebih penting daripada
- * satu baris dengan Kembali/Home.
+ * sebagai "pindah-pindah"). Revisi 6 memindah lonceng ke strip terpisah
+ * di layout -- tapi itu bikin lonceng TIDAK sebaris dengan judul halaman
+ * (`h1`, ditaruh terpisah SETELAH `PageNav` ini, bukan di baris ini).
+ * Revisi 7: lonceng ditaruh di `PageHeader` (components/page-header.tsx),
+ * sebaris dengan `h1` -- bukan di baris `PageNav` ini, karena `PageNav`
+ * sendiri tidak muncul di semua halaman (mis. dashboard).
  */
 export function PageNav({ homeHref }: { homeHref: string }) {
   const router = useRouter();

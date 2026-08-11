@@ -87,15 +87,30 @@ async function resolveBucketIdsForRefs(
   }
 
   if (subtaskIds.length) {
-    const { data } = await supabase
+    // Flat 2-langkah (subtasks -> task_id, lalu tasks -> bucket_id), BUKAN
+    // nested embed PostgREST (`task:tasks(bucket_id)`) -- pola yang sama
+    // dipakai di app/api/cron/reminders/route.ts untuk resolve bucket
+    // subtask. Sebelumnya pakai embed, tapi errornya di-swallow diam-diam
+    // (cuma destructure `data`) kalau embed-nya gagal -- jadi kalau
+    // notifikasi personal panitia mengarah ke subtask, link-nya senyap jadi
+    // null (dilaporkan Yolanda: notifikasi tidak clickable di halaman
+    // panitia). Query flat begini tidak bergantung pada embed sama sekali.
+    const { data: subtaskRows } = await supabase
       .from("subtasks")
-      .select("id, task:tasks(bucket_id)")
+      .select("id, task_id")
       .in("id", subtaskIds);
-    for (const subtask of (data ?? []) as unknown as {
-      id: string;
-      task: { bucket_id: string } | null;
-    }[]) {
-      if (subtask.task?.bucket_id) bucketByKey.set(`subtask:${subtask.id}`, subtask.task.bucket_id);
+
+    const parentTaskIds = [...new Set((subtaskRows ?? []).map((row) => row.task_id))];
+    const { data: parentTasks } = parentTaskIds.length
+      ? await supabase.from("tasks").select("id, bucket_id").in("id", parentTaskIds)
+      : { data: [] as { id: string; bucket_id: string }[] };
+    const bucketIdByTaskId = new Map(
+      (parentTasks ?? []).map((task) => [task.id, task.bucket_id]),
+    );
+
+    for (const subtask of (subtaskRows ?? []) as { id: string; task_id: string }[]) {
+      const bucketId = bucketIdByTaskId.get(subtask.task_id);
+      if (bucketId) bucketByKey.set(`subtask:${subtask.id}`, bucketId);
     }
   }
 
