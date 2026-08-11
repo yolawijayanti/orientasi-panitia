@@ -2,13 +2,13 @@ import { notFound } from "next/navigation";
 
 import { LogoutButton } from "@/components/logout-button";
 import { PageNav } from "@/components/page-nav";
-import { PanitiaNotificationBell } from "@/components/notifications/panitia-notification-bell";
 import {
   BucketTasksSection,
   type Task,
   type Subtask,
   type AssignableMember,
 } from "@/components/tasks/bucket-tasks-section";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function BucketDetailPanitiaPage({
@@ -21,19 +21,13 @@ export default async function BucketDetailPanitiaPage({
   const { bucketId } = await params;
   const { error } = await searchParams;
   const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
+  const currentUser = await getCurrentUser();
 
-  if (!authData.user) {
+  if (!currentUser) {
     return null;
   }
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("kepanitiaan_site_id")
-    .eq("id", authData.user.id)
-    .single();
-
-  const kepanitiaanSiteId = profile?.kepanitiaan_site_id as string | null | undefined;
+  const kepanitiaanSiteId = currentUser.kepanitiaanSiteId;
 
   if (!kepanitiaanSiteId) {
     return (
@@ -87,7 +81,7 @@ export default async function BucketDetailPanitiaPage({
     <main className="flex min-h-screen flex-col gap-6 p-8">
       <div className="flex items-center justify-between">
         <div>
-          <PageNav homeHref="/panitia/dashboard" right={<PanitiaNotificationBell />} />
+          <PageNav homeHref="/panitia/dashboard" />
           <h1 className="mt-1 text-xl font-semibold">
             {bucket.nama_bidang}
             {bucket.is_budgeting && (
