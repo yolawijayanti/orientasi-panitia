@@ -11,6 +11,7 @@ import { deleteKepanitiaan, renameKepanitiaan } from "@/lib/kepanitiaan/actions"
 import { uploadKepanitiaanLogo, removeKepanitiaanLogo } from "@/lib/kepanitiaan/logo-actions";
 import { uploadBudgetTemplate, removeBudgetTemplate } from "@/lib/budget/template-actions";
 import { loadBudgetTemplate, type BudgetTemplate } from "@/lib/budget/template";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { createClient } from "@/lib/supabase/server";
 
 const CURRENT_PATH = "/leader/kepanitiaan";
@@ -28,6 +29,7 @@ export default async function KepanitiaanListPage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
+  const currentUser = await getCurrentUser();
   const { data } = await supabase
     .from("kepanitiaan_site")
     .select("id, kepanitiaan(id, nama, logo_url), site:sites(id, nama_site)")
@@ -66,10 +68,13 @@ export default async function KepanitiaanListPage({
         nav={<PageNav homeHref="/leader/dashboard" />}
         title="Manajemen Kepanitiaan"
         description={
-          <p className="text-sm text-muted-foreground">
-            Pilih salah satu site di bawah untuk membuka Timeline, Bucket Tugas, dan Susunan
-            Panitia instance tersebut.
-          </p>
+          <>
+            <p className="text-sm text-muted-foreground">
+              Pilih salah satu site di bawah untuk membuka Timeline, Bucket Tugas, dan Susunan
+              Panitia instance tersebut.
+            </p>
+            <p className="text-sm text-muted-foreground">Masuk sebagai {currentUser?.email}</p>
+          </>
         }
         bell={<LeaderNotificationBell />}
         actions={

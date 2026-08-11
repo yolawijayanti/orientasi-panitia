@@ -90,6 +90,9 @@ export default async function PanitiaWorkspacePage({
       <PageHeader
         nav={<PageNav homeHref="/panitia/dashboard" />}
         title={`${typedInstance?.kepanitiaan?.nama} @ ${typedInstance?.site?.nama_site}`}
+        description={
+          <p className="text-sm text-muted-foreground">Masuk sebagai {currentUser.email}</p>
+        }
         bell={<PanitiaNotificationBell />}
         actions={<LogoutButton />}
       />
