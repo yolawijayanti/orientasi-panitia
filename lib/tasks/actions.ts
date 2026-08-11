@@ -4,11 +4,23 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
-import { checkAndNotifyInstanceComplete } from "@/lib/notifications/notify-leader";
+import { checkAndNotifyInstanceComplete, checkAndNotifyTaskAssigned } from "@/lib/notifications/notify";
 
 export type ItemStatus = "belum" | "proses" | "selesai";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
+async function resolveInstanceIdFromBucket(
+  supabase: SupabaseClient,
+  bucketId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("buckets")
+    .select("kepanitiaan_site_id")
+    .eq("id", bucketId)
+    .maybeSingle();
+  return data?.kepanitiaan_site_id ?? null;
+}
 
 /**
  * Diresolve SEBELUM update/hapus (bukan sesudah) supaya juga jalan untuk
@@ -21,12 +33,7 @@ async function resolveInstanceIdFromTask(
 ): Promise<string | null> {
   const { data } = await supabase.from("tasks").select("bucket_id").eq("id", taskId).maybeSingle();
   if (!data) return null;
-  const { data: bucket } = await supabase
-    .from("buckets")
-    .select("kepanitiaan_site_id")
-    .eq("id", data.bucket_id)
-    .maybeSingle();
-  return bucket?.kepanitiaan_site_id ?? null;
+  return resolveInstanceIdFromBucket(supabase, data.bucket_id);
 }
 
 async function resolveInstanceIdFromSubtask(
@@ -40,6 +47,41 @@ async function resolveInstanceIdFromSubtask(
     .maybeSingle();
   if (!data) return null;
   return resolveInstanceIdFromTask(supabase, data.task_id);
+}
+
+/**
+ * Dipakai khusus flow update (bukan delete) -- butuh `assignee_id` LAMA
+ * sekalian (dalam query yang sama dengan bucket_id) supaya bisa dibandingkan
+ * dengan `assignee_id` baru dari form, untuk tahu apakah ini benar-benar
+ * ASSIGNMENT BARU (bukan re-save assignee yang sama) sebelum memicu
+ * notifyTaskAssigned.
+ */
+async function fetchTaskContext(
+  supabase: SupabaseClient,
+  taskId: string,
+): Promise<{ instanceId: string | null; assigneeId: string | null } | null> {
+  const { data } = await supabase
+    .from("tasks")
+    .select("bucket_id, assignee_id")
+    .eq("id", taskId)
+    .maybeSingle();
+  if (!data) return null;
+  const instanceId = await resolveInstanceIdFromBucket(supabase, data.bucket_id);
+  return { instanceId, assigneeId: data.assignee_id };
+}
+
+async function fetchSubtaskContext(
+  supabase: SupabaseClient,
+  subtaskId: string,
+): Promise<{ instanceId: string | null; assigneeId: string | null } | null> {
+  const { data } = await supabase
+    .from("subtasks")
+    .select("task_id, assignee_id")
+    .eq("id", subtaskId)
+    .maybeSingle();
+  if (!data) return null;
+  const instanceId = await resolveInstanceIdFromTask(supabase, data.task_id);
+  return { instanceId, assigneeId: data.assignee_id };
 }
 
 function withError(redirectTo: string, message: string): never {
@@ -64,17 +106,29 @@ export async function addTask(bucketId: string, redirectTo: string, formData: Fo
   if (typeof judul !== "string" || !judul.trim()) {
     withError(redirectTo, "Nama tugas wajib diisi.");
   }
+  const judulTrimmed = (judul as string).trim();
+  const deadline = parseDeadline(formData.get("deadline"));
+  const assigneeId = parseAssigneeId(formData.get("assignee_id"));
 
   const supabase = await createClient();
-  const { error } = await supabase.from("tasks").insert({
-    bucket_id: bucketId,
-    judul: (judul as string).trim(),
-    deadline: parseDeadline(formData.get("deadline")),
-    assignee_id: parseAssigneeId(formData.get("assignee_id")),
-  });
+  const { data: inserted, error } = await supabase
+    .from("tasks")
+    .insert({ bucket_id: bucketId, judul: judulTrimmed, deadline, assignee_id: assigneeId })
+    .select("id")
+    .single();
 
   if (error) {
     withError(redirectTo, "Gagal menambah tugas.");
+  }
+
+  if (assigneeId && inserted) {
+    await checkAndNotifyTaskAssigned(supabase, {
+      assigneeId,
+      refType: "task",
+      refId: inserted.id,
+      judul: judulTrimmed,
+      deadline,
+    });
   }
 
   revalidatePath(redirectTo);
@@ -85,17 +139,20 @@ export async function updateTask(taskId: string, redirectTo: string, formData: F
   if (typeof judul !== "string" || !judul.trim()) {
     withError(redirectTo, "Nama tugas wajib diisi.");
   }
+  const judulTrimmed = (judul as string).trim();
+  const deadline = parseDeadline(formData.get("deadline"));
+  const assigneeId = parseAssigneeId(formData.get("assignee_id"));
 
   const supabase = await createClient();
-  const instanceId = await resolveInstanceIdFromTask(supabase, taskId);
+  const before = await fetchTaskContext(supabase, taskId);
 
   const { error } = await supabase
     .from("tasks")
     .update({
-      judul: (judul as string).trim(),
-      deadline: parseDeadline(formData.get("deadline")),
+      judul: judulTrimmed,
+      deadline,
       status: parseStatus(formData.get("status")),
-      assignee_id: parseAssigneeId(formData.get("assignee_id")),
+      assignee_id: assigneeId,
     })
     .eq("id", taskId);
 
@@ -103,7 +160,17 @@ export async function updateTask(taskId: string, redirectTo: string, formData: F
     withError(redirectTo, "Gagal menyimpan perubahan tugas.");
   }
 
-  if (instanceId) await checkAndNotifyInstanceComplete(supabase, instanceId);
+  if (before?.instanceId) await checkAndNotifyInstanceComplete(supabase, before.instanceId);
+
+  if (assigneeId && assigneeId !== before?.assigneeId) {
+    await checkAndNotifyTaskAssigned(supabase, {
+      assigneeId,
+      refType: "task",
+      refId: taskId,
+      judul: judulTrimmed,
+      deadline,
+    });
+  }
 
   revalidatePath(redirectTo);
 }
@@ -128,17 +195,29 @@ export async function addSubtask(taskId: string, redirectTo: string, formData: F
   if (typeof judul !== "string" || !judul.trim()) {
     withError(redirectTo, "Nama subtugas wajib diisi.");
   }
+  const judulTrimmed = (judul as string).trim();
+  const deadline = parseDeadline(formData.get("deadline"));
+  const assigneeId = parseAssigneeId(formData.get("assignee_id"));
 
   const supabase = await createClient();
-  const { error } = await supabase.from("subtasks").insert({
-    task_id: taskId,
-    judul: (judul as string).trim(),
-    deadline: parseDeadline(formData.get("deadline")),
-    assignee_id: parseAssigneeId(formData.get("assignee_id")),
-  });
+  const { data: inserted, error } = await supabase
+    .from("subtasks")
+    .insert({ task_id: taskId, judul: judulTrimmed, deadline, assignee_id: assigneeId })
+    .select("id")
+    .single();
 
   if (error) {
     withError(redirectTo, "Gagal menambah subtugas.");
+  }
+
+  if (assigneeId && inserted) {
+    await checkAndNotifyTaskAssigned(supabase, {
+      assigneeId,
+      refType: "subtask",
+      refId: inserted.id,
+      judul: judulTrimmed,
+      deadline,
+    });
   }
 
   revalidatePath(redirectTo);
@@ -149,17 +228,20 @@ export async function updateSubtask(subtaskId: string, redirectTo: string, formD
   if (typeof judul !== "string" || !judul.trim()) {
     withError(redirectTo, "Nama subtugas wajib diisi.");
   }
+  const judulTrimmed = (judul as string).trim();
+  const deadline = parseDeadline(formData.get("deadline"));
+  const assigneeId = parseAssigneeId(formData.get("assignee_id"));
 
   const supabase = await createClient();
-  const instanceId = await resolveInstanceIdFromSubtask(supabase, subtaskId);
+  const before = await fetchSubtaskContext(supabase, subtaskId);
 
   const { error } = await supabase
     .from("subtasks")
     .update({
-      judul: (judul as string).trim(),
-      deadline: parseDeadline(formData.get("deadline")),
+      judul: judulTrimmed,
+      deadline,
       status: parseStatus(formData.get("status")),
-      assignee_id: parseAssigneeId(formData.get("assignee_id")),
+      assignee_id: assigneeId,
     })
     .eq("id", subtaskId);
 
@@ -167,7 +249,17 @@ export async function updateSubtask(subtaskId: string, redirectTo: string, formD
     withError(redirectTo, "Gagal menyimpan perubahan subtugas.");
   }
 
-  if (instanceId) await checkAndNotifyInstanceComplete(supabase, instanceId);
+  if (before?.instanceId) await checkAndNotifyInstanceComplete(supabase, before.instanceId);
+
+  if (assigneeId && assigneeId !== before?.assigneeId) {
+    await checkAndNotifyTaskAssigned(supabase, {
+      assigneeId,
+      refType: "subtask",
+      refId: subtaskId,
+      judul: judulTrimmed,
+      deadline,
+    });
+  }
 
   revalidatePath(redirectTo);
 }

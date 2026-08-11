@@ -1,5 +1,6 @@
 import { NotificationBell } from "@/components/notifications/notification-bell";
-import { loadLeaderNotifications } from "@/lib/notifications/leader-feed";
+import { loadLeaderNotifications } from "@/lib/notifications/feed";
+import { countUnread, loadNotificationsSeenAt } from "@/lib/notifications/unread";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -12,12 +13,17 @@ import { createClient } from "@/lib/supabase/server";
  */
 export default async function LeaderLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
-  const notifications = await loadLeaderNotifications(supabase);
+  const { data: authData } = await supabase.auth.getUser();
+
+  const [notifications, seenAt] = await Promise.all([
+    loadLeaderNotifications(supabase),
+    authData.user ? loadNotificationsSeenAt(supabase, authData.user.id) : Promise.resolve(null),
+  ]);
 
   return (
     <div className="flex min-h-full flex-col">
       <div className="flex justify-end border-b p-3">
-        <NotificationBell notifications={notifications} />
+        <NotificationBell notifications={notifications} unreadCount={countUnread(notifications, seenAt)} />
       </div>
       {children}
     </div>

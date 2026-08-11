@@ -1,10 +1,15 @@
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { LeaderNotification } from "@/lib/notifications/leader-feed";
+import type { NotificationItem } from "@/lib/notifications/feed";
 import { NOTIF_JENIS_BADGE_CLASSNAME, NOTIF_JENIS_LABEL, formatWaktuNotifikasi } from "@/lib/notifications/format";
 
-/** Read-only, nol client-side JS -- mengikuti pola InstanceOverviewCard (Fase 6). */
-export function NotificationFeed({ notifications }: { notifications: LeaderNotification[] }) {
+/**
+ * Read-only, nol client-side JS -- mengikuti pola InstanceOverviewCard
+ * (Fase 6). Dipakai untuk feed leader MAUPUN panitia (isi dropdown lonceng
+ * NotificationBell) -- makanya teks kosongnya generik, tidak menyebut jenis
+ * notifikasi tertentu.
+ */
+export function NotificationFeed({ notifications }: { notifications: NotificationItem[] }) {
   return (
     <Card>
       <CardHeader>
@@ -12,10 +17,7 @@ export function NotificationFeed({ notifications }: { notifications: LeaderNotif
       </CardHeader>
       <CardContent>
         {notifications.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Belum ada notifikasi. Notifikasi muncul di sini begitu ada budget submission yang
-            lengkap atau instance yang seluruh tugasnya selesai 100%.
-          </p>
+          <p className="text-sm text-muted-foreground">Belum ada notifikasi.</p>
         ) : (
           <ul className="flex flex-col gap-3">
             {notifications.map((notif) => (

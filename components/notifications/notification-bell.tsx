@@ -5,31 +5,54 @@ import { Bell } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { NotificationFeed } from "@/components/notifications/notification-feed";
-import type { LeaderNotification } from "@/lib/notifications/leader-feed";
+import { markNotificationsSeen } from "@/lib/notifications/mark-seen";
+import type { NotificationItem } from "@/lib/notifications/feed";
 
 /**
- * Tombol lonceng yang muncul di semua halaman leader (dipasang di
- * app/(leader)/layout.tsx, bukan cuma di 1 halaman). "use client" cuma
- * untuk toggle buka/tutup dropdown -- datanya sendiri tetap difetch di
- * server (layout) lalu dioper sebagai prop, pola sama seperti SideTabs
- * (Fase 4). Isi dropdown reuse `NotificationFeed` yang sama seperti versi
- * card sebelumnya (lihat HANDOVER.md Catatan Teknis Fase 7 Revisi 2) --
- * tidak ada logic list yang diduplikasi.
+ * Tombol lonceng yang muncul di semua halaman leader DAN panitia (dipasang
+ * di app/(leader)/layout.tsx dan app/(panitia)/layout.tsx). "use client"
+ * cuma untuk toggle buka/tutup dropdown + badge counter -- datanya sendiri
+ * tetap difetch di server (layout) lalu dioper sebagai prop, pola sama
+ * seperti SideTabs (Fase 4). Isi dropdown reuse `NotificationFeed` apa
+ * adanya, tidak ada logic list yang diduplikasi.
+ *
+ * `unreadCount` dihitung di server (layout) dari `notifications_seen_at`
+ * akun ini vs `sentAt` tiap notifikasi -- begitu dropdown dibuka, badge
+ * langsung disembunyikan secara OPTIMISTIC (state lokal `localUnread`)
+ * sambil `markNotificationsSeen()` jalan di background supaya status
+ * "sudah dilihat" itu PERSISTEN (tidak balik muncul di navigasi
+ * berikutnya).
  */
-export function NotificationBell({ notifications }: { notifications: LeaderNotification[] }) {
+export function NotificationBell({
+  notifications,
+  unreadCount,
+}: {
+  notifications: NotificationItem[];
+  unreadCount: number;
+}) {
   const [isOpen, setIsOpen] = useState(false);
+  const [localUnread, setLocalUnread] = useState(unreadCount);
+
+  function handleToggle() {
+    const willOpen = !isOpen;
+    setIsOpen(willOpen);
+    if (willOpen && localUnread > 0) {
+      setLocalUnread(0);
+      void markNotificationsSeen();
+    }
+  }
 
   return (
     <div className="relative">
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        aria-label="Notifikasi"
-        onClick={() => setIsOpen((open) => !open)}
-      >
+      <Button type="button" variant="outline" size="icon" aria-label="Notifikasi" onClick={handleToggle}>
         <Bell className="size-4" />
       </Button>
+
+      {localUnread > 0 && (
+        <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">
+          {localUnread > 9 ? "9+" : localUnread}
+        </span>
+      )}
 
       {isOpen && (
         <div className="absolute right-0 top-full z-50 mt-2 w-80">

@@ -9,7 +9,7 @@ import {
   MAX_BUDGET_FILE_BYTES,
   SUBMISSION_BUCKET,
 } from "@/lib/budget/constants";
-import { checkAndNotifyBudgetLengkap } from "@/lib/notifications/notify-leader";
+import { checkAndNotifyBudgetLengkap } from "@/lib/notifications/notify";
 
 function withError(redirectTo: string, message: string): never {
   redirect(`${redirectTo}?error=${encodeURIComponent(message)}`);

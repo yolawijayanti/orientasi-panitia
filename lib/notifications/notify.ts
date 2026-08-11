@@ -1,6 +1,10 @@
 import type { createClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email/send";
-import { budgetLengkapEmail, instanceSelesaiEmail } from "@/lib/notifications/templates";
+import {
+  budgetLengkapEmail,
+  instanceSelesaiEmail,
+  taskAssignedEmail,
+} from "@/lib/notifications/templates";
 import { isInstanceFullyComplete } from "@/lib/notifications/instance-progress";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -47,6 +51,40 @@ async function getLeaderEmails(supabase: SupabaseClient): Promise<string[]> {
 }
 
 /**
+ * Semua akun panitia YANG SUDAH TERDAFTAR (`public.users`) di instance ini
+ * -- reuse RPC `list_akun_panitia_instance` yang sudah ada sejak Fase 4
+ * (dipakai awalnya untuk dropdown "+ Tambah Anggota"). Ini SENGAJA
+ * mengembalikan akun LOGIN, bukan baris `committee_members` -- kalau ada
+ * anggota yang tercatat di Susunan Panitia tapi belum punya akun login,
+ * dia tidak akan kebagian email lewat jalur ini (beda dari task_assigned/
+ * reminder_deadline yang kirim ke committee_members.email langsung, tidak
+ * butuh akun login sama sekali) -- diterima sebagai batasan, karena tanpa
+ * akun `public.users` kita tidak punya cara resmi tahu ini "penerima yang
+ * valid" (lihat catatan Fase 5 soal insiden akun test yang tercatat di
+ * Susunan Panitia tapi tidak bisa login).
+ */
+async function getPanitiaEmails(supabase: SupabaseClient, kepanitiaanSiteId: string) {
+  const { data } = await supabase.rpc("list_akun_panitia_instance", {
+    p_kepanitiaan_site_id: kepanitiaanSiteId,
+  });
+  return ((data ?? []) as { id: string; email: string }[]).map((row) => row.email);
+}
+
+/**
+ * Leader + SELURUH panitia terdaftar di instance ini -- dipakai untuk
+ * budget_lengkap/instance_selesai, yang sifatnya broadcast satu instance
+ * (bukan personal ke 1 orang seperti reminder_deadline/task_assigned).
+ * `Set` untuk dedupe kalau kebetulan ada alamat yang sama di kedua daftar.
+ */
+async function getInstanceBroadcastEmails(supabase: SupabaseClient, kepanitiaanSiteId: string) {
+  const [leaderEmails, panitiaEmails] = await Promise.all([
+    getLeaderEmails(supabase),
+    getPanitiaEmails(supabase, kepanitiaanSiteId),
+  ]);
+  return [...new Set([...leaderEmails, ...panitiaEmails])];
+}
+
+/**
  * Dipanggil langsung dari `submitBudget` setelah status baris
  * `budget_submissions` disimpan sebagai "lengkap" -- ini yang membuatnya
  * event-based (fire tepat saat trigger terjadi), bukan polling berkala.
@@ -58,13 +96,13 @@ async function getLeaderEmails(supabase: SupabaseClient): Promise<string[]> {
 export async function notifyBudgetLengkap(supabase: SupabaseClient, kepanitiaanSiteId: string) {
   if (await alreadyNotified(supabase, kepanitiaanSiteId, "budget_lengkap")) return;
 
-  const [instanceLabel, leaderEmails] = await Promise.all([
+  const [instanceLabel, recipients] = await Promise.all([
     loadInstanceLabel(supabase, kepanitiaanSiteId),
-    getLeaderEmails(supabase),
+    getInstanceBroadcastEmails(supabase, kepanitiaanSiteId),
   ]);
 
   const { subject, html } = budgetLengkapEmail(instanceLabel);
-  await sendEmail(leaderEmails, subject, html);
+  await sendEmail(recipients, subject, html);
 
   await supabase.from("notifications_log").insert({
     kepanitiaan_site_id: kepanitiaanSiteId,
@@ -85,19 +123,63 @@ export async function notifyBudgetLengkap(supabase: SupabaseClient, kepanitiaanS
 export async function notifyInstanceSelesai(supabase: SupabaseClient, kepanitiaanSiteId: string) {
   if (await alreadyNotified(supabase, kepanitiaanSiteId, "instance_selesai")) return;
 
-  const [instanceLabel, leaderEmails] = await Promise.all([
+  const [instanceLabel, recipients] = await Promise.all([
     loadInstanceLabel(supabase, kepanitiaanSiteId),
-    getLeaderEmails(supabase),
+    getInstanceBroadcastEmails(supabase, kepanitiaanSiteId),
   ]);
 
   const { subject, html } = instanceSelesaiEmail(instanceLabel);
-  await sendEmail(leaderEmails, subject, html);
+  await sendEmail(recipients, subject, html);
 
   await supabase.from("notifications_log").insert({
     kepanitiaan_site_id: kepanitiaanSiteId,
     jenis: "instance_selesai",
     ref_type: "kepanitiaan_site",
     ref_id: kepanitiaanSiteId,
+  });
+}
+
+/**
+ * Dipanggil dari addTask/updateTask/addSubtask/updateSubtask setelah
+ * `assignee_id` berubah jadi seseorang yang BARU (bukan re-save assignee
+ * yang sama) -- pengecekan "apa ini benar-benar baru" dilakukan di
+ * pemanggil (lib/tasks/actions.ts), bukan di sini. Tidak butuh
+ * `kepanitiaan_site_id` sebagai parameter -- cukup `assigneeId`, karena
+ * baris `committee_members` sudah punya kolom itu sendiri.
+ */
+export async function notifyTaskAssigned(
+  supabase: SupabaseClient,
+  params: {
+    assigneeId: string;
+    refType: "task" | "subtask";
+    refId: string;
+    judul: string;
+    deadline: string | null;
+  },
+) {
+  const { data: member } = await supabase
+    .from("committee_members")
+    .select("email, kepanitiaan_site_id")
+    .eq("id", params.assigneeId)
+    .maybeSingle();
+
+  if (!member?.email) return;
+
+  const instanceLabel = await loadInstanceLabel(supabase, member.kepanitiaan_site_id);
+  const { subject, html } = taskAssignedEmail({
+    judul: params.judul,
+    jenisItem: params.refType === "task" ? "tugas" : "subtugas",
+    deadline: params.deadline,
+    instanceLabel,
+  });
+  await sendEmail(member.email, subject, html);
+
+  await supabase.from("notifications_log").insert({
+    kepanitiaan_site_id: member.kepanitiaan_site_id,
+    jenis: "task_assigned",
+    ref_type: params.refType,
+    ref_id: params.refId,
+    recipient_committee_member_id: params.assigneeId,
   });
 }
 
@@ -130,5 +212,23 @@ export async function checkAndNotifyInstanceComplete(
     }
   } catch (err) {
     console.error("Gagal memeriksa/mengirim notifikasi instance selesai:", err);
+  }
+}
+
+/** Wrapper try/catch, alasan sama seperti checkAndNotifyInstanceComplete. */
+export async function checkAndNotifyTaskAssigned(
+  supabase: SupabaseClient,
+  params: {
+    assigneeId: string;
+    refType: "task" | "subtask";
+    refId: string;
+    judul: string;
+    deadline: string | null;
+  },
+) {
+  try {
+    await notifyTaskAssigned(supabase, params);
+  } catch (err) {
+    console.error("Gagal memeriksa/mengirim notifikasi tugas baru:", err);
   }
 }

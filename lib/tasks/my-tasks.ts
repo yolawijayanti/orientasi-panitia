@@ -1,5 +1,6 @@
 import type { ItemStatus } from "@/lib/tasks/actions";
 import type { createClient } from "@/lib/supabase/server";
+import { resolveMatchedMemberIds } from "@/lib/committee/match-account";
 
 export type MyTaskRow = {
   id: string;
@@ -28,15 +29,7 @@ export async function loadMyTasks(
   kepanitiaanSiteId: string,
   email: string | null | undefined,
 ): Promise<{ matchedMemberIds: string[]; tasks: MyTaskRow[] }> {
-  if (!email) return { matchedMemberIds: [], tasks: [] };
-
-  const { data: matchedMembers } = await supabase
-    .from("committee_members")
-    .select("id")
-    .eq("kepanitiaan_site_id", kepanitiaanSiteId)
-    .ilike("email", email);
-
-  const matchedMemberIds = (matchedMembers ?? []).map((member) => member.id as string);
+  const matchedMemberIds = await resolveMatchedMemberIds(supabase, kepanitiaanSiteId, email);
   if (matchedMemberIds.length === 0) {
     return { matchedMemberIds: [], tasks: [] };
   }
