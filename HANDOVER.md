@@ -124,7 +124,7 @@ Jangan tambahkan tabel/kolom untuk: notulensi meeting, game path journey, leader
 - [x] Fase 4 — Bucket Tugas & Breakdown — **selesai & terverifikasi live sepenuhnya**, tidak ada yang menggantung. Kode lewat **5 ronde revisi live** dengan Yolanda — lihat rincian lengkap di Catatan Teknis Fase 4 di bawah. Board Trello, assign anggota, upload logo kepanitiaan, tab menyamping untuk leader & panitia, tab "Tugas Saya", pembatasan tambah-anggota ke akun terdaftar, dan rename aplikasi jadi **PanitiYAY** semua sudah dikonfirmasi live. **Isolasi RLS `tasks_scoped`/`subtasks_scoped` dari sisi akun panitia juga sudah dikonfirmasi**: `panitia-e@test.local`/`panitia-d@test.local` (di 2 instance berbeda — `panitia-e` dibuat menggantikan `panitia-c` karena akun `panitia-c` lama sempat terkendala login, lihat catatan di bawah) dites lengkap 3 langkah — (a) panitia-e tambah tugas percobaan di instance-nya, (b) panitia-d login dan **tidak** melihat tugas itu sama sekali (baik di Task Board maupun Tugas Saya), (c) panitia-d coba akses langsung URL bucket milik instance panitia-e lewat address bar dan **kena 404**, bukan bocor data. Ketiganya lolos.
 - [x] Fase 5 — Download/Submit Template Budgeting
 - [x] Fase 6 — Dashboard Kepanitiaan (Leader)
-- [ ] Fase 7 — Notifikasi (kode & struktur selesai: email + lonceng in-app dengan badge counter untuk LEADER DAN PANITIA, mencakup 4 jenis notifikasi -- reminder_deadline, task_assigned (baru), budget_lengkap, instance_selesai (2 terakhir sekarang broadcast ke leader + seluruh panitia instance, bukan cuma leader) -- lihat Catatan Teknis Fase 7 & Revisi 1-3 di bawah. Migration Fase 7 awal (`...0010`) sudah dijalankan & env var sudah diisi Yolanda. **Belum dicentang selesai**: migration TERBARU (`...0011`, Revisi 3) belum dijalankan, dan verifikasi live untuk seluruh checklist (poin 1-19 di Catatan Teknis Fase 7) belum dituntaskan satu-satu)
+- [ ] Fase 7 — Notifikasi (kode & struktur selesai: email + lonceng in-app dengan badge counter untuk LEADER DAN PANITIA, mencakup 5 jenis notifikasi -- reminder_deadline, task_assigned, task_unassigned (2 terakhir baru), budget_lengkap, instance_selesai (2 terakhir sekarang broadcast ke leader + seluruh panitia instance, bukan cuma leader) -- lihat Catatan Teknis Fase 7 & Revisi 1-4 di bawah. Migration Fase 7 awal (`...0010`) sudah dijalankan & env var sudah diisi Yolanda. **Belum dicentang selesai**: migration TERBARU (`...0011` & `...0012`, Revisi 3-4) belum dijalankan, dan verifikasi live untuk seluruh checklist (poin 1-23 di Catatan Teknis Fase 7) belum dituntaskan satu-satu)
 - [ ] Fase 8 — Polish Desain
 
 **Fase 5 -- selesai & terverifikasi live sepenuhnya oleh Yolanda** (checklist 8 langkah di Catatan Teknis Fase 5 -- download template per-event, upload submission sebagai panitia, status berubah "Lengkap", isolasi antar-instance, semua dengan tampilan FINAL -- sudah dijalankan & lolos). Ringkasan perjalanan revisinya (detail lengkap tiap poin ada di Catatan Teknis Fase 5):
@@ -643,3 +643,26 @@ Setelah kedelapan langkah di atas lolos, centang Fase 5 selesai di section 8.
 17. Klik lonceng (baik sebagai leader maupun panitia) sampai badge-nya hilang -- refresh halaman atau navigasi ke halaman lain -- pastikan badge TETAP 0 (tidak balik muncul), sampai ada notifikasi baru lagi.
 18. Buka `/panitia/dashboard`, `/panitia/workspace`, dan `/panitia/bucket/[bucketId]` -- pastikan lonceng muncul konsisten di semua halaman panitia itu.
 19. Login sebagai panitia yang emailnya BELUM cocok dengan akun `committee_members` manapun (skenario sama seperti "Tugas Saya" kosong, Fase 4) -- pastikan halaman tidak error, lonceng tetap muncul tapi dropdown-nya kosong/wajar.
+
+**Revisi 4 -- notifikasi "task_unassigned"** (permintaan Yolanda menindaklanjuti titik kritis poin 2 yang diusulkan di Revisi 3: assignee LAMA tidak pernah dikabari kalau tugasnya dialihkan ke orang lain).
+
+**Migration baru** `supabase/migrations/20260811000012_fase7_notifikasi_task_unassigned.sql` -- cuma 1 perubahan: constraint `jenis` (drop + create ulang, pola sama seperti sebelumnya) sekarang termasuk `'task_unassigned'`. Tidak ada kolom baru -- `task_unassigned` reuse struktur `recipient_committee_member_id`/`ref_type`/`ref_id` yang sudah ada dari Revisi 3.
+
+**`lib/notifications/notify.ts`** -- direfactor: logic inti "resolve committee_members, kirim email, insert log" yang sebelumnya cuma ada di `notifyTaskAssigned` diekstrak jadi helper privat `notifyPersonal({ jenis, assigneeId, refType, refId, buildEmail })`, dipakai bareng oleh `notifyTaskAssigned` (jenis `task_assigned`) MAUPUN `notifyTaskUnassigned` (BARU, jenis `task_unassigned`) -- keduanya cuma beda jenis & isi email, jadi tidak ada logic yang diduplikasi. Plus `checkAndNotifyTaskUnassigned` (wrapper try/catch, alasan sama seperti wrapper-wrapper lain).
+
+**`lib/tasks/actions.ts`** -- `updateTask`/`updateSubtask` sekarang mengecek perubahan assignee dengan pola lengkap:
+```
+if (assigneeId !== (before?.assigneeId ?? null)) {
+  if (assigneeId) checkAndNotifyTaskAssigned(...);       // ada assignee BARU
+  if (before?.assigneeId) checkAndNotifyTaskUnassigned(...); // ada assignee LAMA
+}
+```
+Keduanya BISA fire bersamaan (assignee diganti dari A ke B -> A dapat "dialihkan", B dapat "tugas baru"), atau cuma salah satu (assignee dihapus jadi null -> cuma "dialihkan"; assignee diisi dari kosong -> cuma "tugas baru"). Re-save assignee yang SAMA (paling umum: cuma ganti status tugas) tidak memicu keduanya sama sekali. `addTask`/`addSubtask`/`deleteTask`/`deleteSubtask` tidak disentuh -- item baru tidak punya assignee lama untuk dikabari, dan hapus tugas dianggap sinyal berbeda dari reassignment (di luar cakupan permintaan ini, lihat catatan titik kritis Revisi 3 poin 2 yang secara spesifik cuma menyebut "dialihkan ke orang lain").
+
+**Warna & label**: `task_unassigned` = "Tugas Dialihkan", warna netral (`bg-muted`/`text-muted-foreground`, sama classname dengan `variant="muted"` di `components/ui/badge.tsx`) -- BUKAN warna "buruk" seperti merah, karena ini murni informasi netral (tanggung jawab pindah), bukan sesuatu yang salah.
+
+**Verifikasi yang sudah dilakukan (di sandbox, bukan live)**: `next build`, `next lint` -- bersih. **Belum diverifikasi live** -- tambahan langkah berikut di atas poin 1-19 sebelumnya:
+20. Jalankan migration `20260811000012_fase7_notifikasi_task_unassigned.sql` lewat Supabase Dashboard > SQL Editor (setelah `...0011`).
+21. Assign satu tugas yang SUDAH punya assignee (misal si A) ke orang lain (si B) -- pastikan A terima email "Tugas Dialihkan" DAN B terima email "Ada Tugas Baru untuk Anda" (dua email berbeda, dua penerima berbeda). Cek juga badge lonceng masing-masing bertambah 1 kalau mereka login.
+22. Ubah assignee tugas yang sudah di-assign jadi "- Belum di-assign -" (null) -- pastikan assignee lama terima email "Tugas Dialihkan", dan TIDAK ada email "tugas baru" ke siapapun (karena tidak ada assignee baru).
+23. Re-save tugas yang assignee-nya TIDAK diubah (misal cuma ganti status atau deadline) -- pastikan TIDAK ada email apapun (assigned maupun unassigned) yang terkirim.

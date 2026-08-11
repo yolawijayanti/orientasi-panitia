@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
-import { checkAndNotifyInstanceComplete, checkAndNotifyTaskAssigned } from "@/lib/notifications/notify";
+import {
+  checkAndNotifyInstanceComplete,
+  checkAndNotifyTaskAssigned,
+  checkAndNotifyTaskUnassigned,
+} from "@/lib/notifications/notify";
 
 export type ItemStatus = "belum" | "proses" | "selesai";
 
@@ -52,9 +56,11 @@ async function resolveInstanceIdFromSubtask(
 /**
  * Dipakai khusus flow update (bukan delete) -- butuh `assignee_id` LAMA
  * sekalian (dalam query yang sama dengan bucket_id) supaya bisa dibandingkan
- * dengan `assignee_id` baru dari form, untuk tahu apakah ini benar-benar
- * ASSIGNMENT BARU (bukan re-save assignee yang sama) sebelum memicu
- * notifyTaskAssigned.
+ * dengan `assignee_id` baru dari form: kalau beda dan yang baru bukan null,
+ * itu ASSIGNMENT BARU (checkAndNotifyTaskAssigned); kalau beda dan yang lama
+ * bukan null, assignee lama itu di-UNASSIGN (checkAndNotifyTaskUnassigned).
+ * Re-save assignee yang sama (paling umum: cuma ganti status) tidak memicu
+ * keduanya.
  */
 async function fetchTaskContext(
   supabase: SupabaseClient,
@@ -162,14 +168,24 @@ export async function updateTask(taskId: string, redirectTo: string, formData: F
 
   if (before?.instanceId) await checkAndNotifyInstanceComplete(supabase, before.instanceId);
 
-  if (assigneeId && assigneeId !== before?.assigneeId) {
-    await checkAndNotifyTaskAssigned(supabase, {
-      assigneeId,
-      refType: "task",
-      refId: taskId,
-      judul: judulTrimmed,
-      deadline,
-    });
+  if (assigneeId !== (before?.assigneeId ?? null)) {
+    if (assigneeId) {
+      await checkAndNotifyTaskAssigned(supabase, {
+        assigneeId,
+        refType: "task",
+        refId: taskId,
+        judul: judulTrimmed,
+        deadline,
+      });
+    }
+    if (before?.assigneeId) {
+      await checkAndNotifyTaskUnassigned(supabase, {
+        assigneeId: before.assigneeId,
+        refType: "task",
+        refId: taskId,
+        judul: judulTrimmed,
+      });
+    }
   }
 
   revalidatePath(redirectTo);
@@ -251,14 +267,24 @@ export async function updateSubtask(subtaskId: string, redirectTo: string, formD
 
   if (before?.instanceId) await checkAndNotifyInstanceComplete(supabase, before.instanceId);
 
-  if (assigneeId && assigneeId !== before?.assigneeId) {
-    await checkAndNotifyTaskAssigned(supabase, {
-      assigneeId,
-      refType: "subtask",
-      refId: subtaskId,
-      judul: judulTrimmed,
-      deadline,
-    });
+  if (assigneeId !== (before?.assigneeId ?? null)) {
+    if (assigneeId) {
+      await checkAndNotifyTaskAssigned(supabase, {
+        assigneeId,
+        refType: "subtask",
+        refId: subtaskId,
+        judul: judulTrimmed,
+        deadline,
+      });
+    }
+    if (before?.assigneeId) {
+      await checkAndNotifyTaskUnassigned(supabase, {
+        assigneeId: before.assigneeId,
+        refType: "subtask",
+        refId: subtaskId,
+        judul: judulTrimmed,
+      });
+    }
   }
 
   revalidatePath(redirectTo);

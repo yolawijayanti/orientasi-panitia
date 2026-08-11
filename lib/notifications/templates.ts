@@ -48,6 +48,22 @@ export function taskAssignedEmail(params: {
   };
 }
 
+export function taskUnassignedEmail(params: {
+  judul: string;
+  jenisItem: "tugas" | "subtugas";
+  instanceLabel: string;
+}): EmailContent {
+  const { judul, jenisItem, instanceLabel } = params;
+  return {
+    subject: `Tugas dialihkan dari Anda: ${judul}`,
+    html: wrap(
+      "Tugas Dialihkan",
+      `<p>${jenisItem === "tugas" ? "Tugas" : "Subtugas"} berikut di <strong>${instanceLabel}</strong> sudah TIDAK lagi jadi tanggung jawab Anda (dialihkan ke orang lain, atau dilepas dari siapapun):</p>
+       <p style="font-size: 16px;"><strong>${judul}</strong></p>`,
+    ),
+  };
+}
+
 export function budgetLengkapEmail(instanceLabel: string): EmailContent {
   return {
     subject: `Budget submission lengkap: ${instanceLabel}`,

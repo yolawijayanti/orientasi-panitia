@@ -4,8 +4,12 @@ import { resolveMatchedMemberIds } from "@/lib/committee/match-account";
 export type NotificationJenis =
   | "reminder_deadline"
   | "task_assigned"
+  | "task_unassigned"
   | "budget_lengkap"
   | "instance_selesai";
+
+/** 3 jenis ini personal ke 1 assignee (recipient_committee_member_id terisi), beda dari budget_lengkap/instance_selesai yang broadcast 1 instance. */
+const PERSONAL_JENIS = ["reminder_deadline", "task_assigned", "task_unassigned"];
 
 export type NotificationItem = {
   id: string;
@@ -65,7 +69,7 @@ export async function loadLeaderNotifications(
  * 1. Broadcast instance ("budget_lengkap"/"instance_selesai") -- RLS
  *    `notifications_log_scoped` sudah otomatis membatasi panitia cuma bisa
  *    baca baris instance-nya sendiri, jadi tidak perlu filter tambahan.
- * 2. Personal ("reminder_deadline"/"task_assigned") -- HARUS difilter ke
+ * 2. Personal ("reminder_deadline"/"task_assigned"/"task_unassigned") -- HARUS difilter ke
  *    `recipient_committee_member_id` milik akun ini sendiri (dicocokkan
  *    lewat email, pola sama seperti "Tugas Saya" Fase 4), supaya panitia
  *    tidak melihat reminder/assignment milik rekan setimnya sendiri.
@@ -92,7 +96,7 @@ export async function loadPanitiaNotifications(
       ? supabase
           .from("notifications_log")
           .select(SELECT_COLUMNS)
-          .in("jenis", ["reminder_deadline", "task_assigned"])
+          .in("jenis", PERSONAL_JENIS)
           .in("recipient_committee_member_id", matchedMemberIds)
           .order("sent_at", { ascending: false })
           .limit(limit)

@@ -4,6 +4,7 @@ import {
   budgetLengkapEmail,
   instanceSelesaiEmail,
   taskAssignedEmail,
+  taskUnassignedEmail,
 } from "@/lib/notifications/templates";
 import { isInstanceFullyComplete } from "@/lib/notifications/instance-progress";
 
@@ -140,21 +141,20 @@ export async function notifyInstanceSelesai(supabase: SupabaseClient, kepanitiaa
 }
 
 /**
- * Dipanggil dari addTask/updateTask/addSubtask/updateSubtask setelah
- * `assignee_id` berubah jadi seseorang yang BARU (bukan re-save assignee
- * yang sama) -- pengecekan "apa ini benar-benar baru" dilakukan di
- * pemanggil (lib/tasks/actions.ts), bukan di sini. Tidak butuh
- * `kepanitiaan_site_id` sebagai parameter -- cukup `assigneeId`, karena
- * baris `committee_members` sudah punya kolom itu sendiri.
+ * Inti bersama task_assigned & task_unassigned -- keduanya sama-sama
+ * "notifikasi personal ke 1 assignee lewat committee_members.email",
+ * bedanya cuma jenis & isi email. Tidak butuh `kepanitiaan_site_id`
+ * sebagai parameter -- cukup `assigneeId`, karena baris `committee_members`
+ * sudah punya kolom itu sendiri.
  */
-export async function notifyTaskAssigned(
+async function notifyPersonal(
   supabase: SupabaseClient,
   params: {
+    jenis: "task_assigned" | "task_unassigned";
     assigneeId: string;
     refType: "task" | "subtask";
     refId: string;
-    judul: string;
-    deadline: string | null;
+    buildEmail: (instanceLabel: string) => { subject: string; html: string };
   },
 ) {
   const { data: member } = await supabase
@@ -166,20 +166,76 @@ export async function notifyTaskAssigned(
   if (!member?.email) return;
 
   const instanceLabel = await loadInstanceLabel(supabase, member.kepanitiaan_site_id);
-  const { subject, html } = taskAssignedEmail({
-    judul: params.judul,
-    jenisItem: params.refType === "task" ? "tugas" : "subtugas",
-    deadline: params.deadline,
-    instanceLabel,
-  });
+  const { subject, html } = params.buildEmail(instanceLabel);
   await sendEmail(member.email, subject, html);
 
   await supabase.from("notifications_log").insert({
     kepanitiaan_site_id: member.kepanitiaan_site_id,
-    jenis: "task_assigned",
+    jenis: params.jenis,
     ref_type: params.refType,
     ref_id: params.refId,
     recipient_committee_member_id: params.assigneeId,
+  });
+}
+
+/**
+ * Dipanggil dari addTask/updateTask/addSubtask/updateSubtask setelah
+ * `assignee_id` berubah jadi seseorang yang BARU (bukan re-save assignee
+ * yang sama) -- pengecekan "apa ini benar-benar baru" dilakukan di
+ * pemanggil (lib/tasks/actions.ts), bukan di sini.
+ */
+export async function notifyTaskAssigned(
+  supabase: SupabaseClient,
+  params: {
+    assigneeId: string;
+    refType: "task" | "subtask";
+    refId: string;
+    judul: string;
+    deadline: string | null;
+  },
+) {
+  await notifyPersonal(supabase, {
+    jenis: "task_assigned",
+    assigneeId: params.assigneeId,
+    refType: params.refType,
+    refId: params.refId,
+    buildEmail: (instanceLabel) =>
+      taskAssignedEmail({
+        judul: params.judul,
+        jenisItem: params.refType === "task" ? "tugas" : "subtugas",
+        deadline: params.deadline,
+        instanceLabel,
+      }),
+  });
+}
+
+/**
+ * Dipanggil dari updateTask/updateSubtask setelah `assignee_id` berubah
+ * DARI seseorang (bukan null) MENJADI orang lain atau null -- kebalikan
+ * dari notifyTaskAssigned, memberi tahu assignee LAMA bahwa tugas itu
+ * sudah bukan tanggung jawabnya lagi. Dipicu titik kritis yang diusulkan
+ * Fase 7 revisi 3: tanpa ini, assignee lama tidak tahu tugasnya dialihkan.
+ */
+export async function notifyTaskUnassigned(
+  supabase: SupabaseClient,
+  params: {
+    assigneeId: string;
+    refType: "task" | "subtask";
+    refId: string;
+    judul: string;
+  },
+) {
+  await notifyPersonal(supabase, {
+    jenis: "task_unassigned",
+    assigneeId: params.assigneeId,
+    refType: params.refType,
+    refId: params.refId,
+    buildEmail: (instanceLabel) =>
+      taskUnassignedEmail({
+        judul: params.judul,
+        jenisItem: params.refType === "task" ? "tugas" : "subtugas",
+        instanceLabel,
+      }),
   });
 }
 
@@ -230,5 +286,22 @@ export async function checkAndNotifyTaskAssigned(
     await notifyTaskAssigned(supabase, params);
   } catch (err) {
     console.error("Gagal memeriksa/mengirim notifikasi tugas baru:", err);
+  }
+}
+
+/** Wrapper try/catch, alasan sama seperti checkAndNotifyInstanceComplete. */
+export async function checkAndNotifyTaskUnassigned(
+  supabase: SupabaseClient,
+  params: {
+    assigneeId: string;
+    refType: "task" | "subtask";
+    refId: string;
+    judul: string;
+  },
+) {
+  try {
+    await notifyTaskUnassigned(supabase, params);
+  } catch (err) {
+    console.error("Gagal memeriksa/mengirim notifikasi tugas dialihkan:", err);
   }
 }
