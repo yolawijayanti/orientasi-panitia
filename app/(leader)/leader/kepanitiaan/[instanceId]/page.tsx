@@ -11,6 +11,7 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { deleteInstance } from "@/lib/kepanitiaan/actions";
 import { loadBucketBoardData } from "@/lib/buckets/board-data";
 import { loadCandidateAccounts } from "@/lib/committee/candidate-accounts";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function InstanceDetailPage({
@@ -23,6 +24,7 @@ export default async function InstanceDetailPage({
   const { instanceId } = await params;
   const { error, message } = await searchParams;
   const supabase = await createClient();
+  const currentUser = await getCurrentUser();
 
   const { data: instance } = await supabase
     .from("kepanitiaan_site")
@@ -68,6 +70,9 @@ export default async function InstanceDetailPage({
       <PageHeader
         nav={<PageNav homeHref="/leader/dashboard" />}
         title={namaInstance}
+        description={
+          <p className="text-sm text-muted-foreground">Masuk sebagai {currentUser?.email}</p>
+        }
         bell={<LeaderNotificationBell />}
         actions={
           <form action={deleteAction}>
