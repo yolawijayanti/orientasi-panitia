@@ -1,14 +1,31 @@
-import type { LeaderNotificationJenis } from "@/lib/notifications/leader-feed";
+import type { NotificationJenis } from "@/lib/notifications/feed";
+import { STATUS_CHIP_CLASSNAME } from "@/lib/tasks/format";
 
-export const NOTIF_JENIS_LABEL: Record<LeaderNotificationJenis, string> = {
+export const NOTIF_JENIS_LABEL: Record<NotificationJenis, string> = {
+  reminder_deadline: "Deadline Mendekat",
+  task_assigned: "Tugas Baru",
+  task_unassigned: "Tugas Dialihkan",
   budget_lengkap: "Budget Lengkap",
   instance_selesai: "Semua Tugas Selesai",
 };
 
-/** Reuse warna hijau "selesai"/"lengkap" yang sudah ada (Fase 4/5) -- kedua jenis di feed ini sama-sama kabar baik (pencapaian), jadi tidak perlu warna baru. */
-export const NOTIF_JENIS_BADGE_CLASSNAME: Record<LeaderNotificationJenis, string> = {
-  budget_lengkap: "border-green-300 bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200",
-  instance_selesai: "border-green-300 bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200",
+/**
+ * Reuse warna kapsul status tugas yang sudah ada (Fase 4 ronde 3, Assigned
+ * = pink / In Progress = kuning / Done = hijau) -- bukan warna baru:
+ * task_assigned ~ "baru ditugaskan" (pink, sama semantik dengan Assigned),
+ * reminder_deadline ~ "masih berjalan, butuh perhatian" (kuning, sama
+ * semantik dengan In Progress), budget_lengkap/instance_selesai ~
+ * "pencapaian" (hijau, sama semantik dengan Done). task_unassigned dapat
+ * warna netral (`muted`, sama classname dengan `variant="muted"` di
+ * components/ui/badge.tsx) -- bukan "buruk", cuma informasi netral bahwa
+ * tanggung jawabnya sudah pindah.
+ */
+export const NOTIF_JENIS_BADGE_CLASSNAME: Record<NotificationJenis, string> = {
+  task_assigned: STATUS_CHIP_CLASSNAME.belum,
+  task_unassigned: "border-transparent bg-muted text-muted-foreground",
+  reminder_deadline: STATUS_CHIP_CLASSNAME.proses,
+  budget_lengkap: STATUS_CHIP_CLASSNAME.selesai,
+  instance_selesai: STATUS_CHIP_CLASSNAME.selesai,
 };
 
 export function formatWaktuNotifikasi(isoTimestamp: string): string {

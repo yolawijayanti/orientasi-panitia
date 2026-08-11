@@ -189,6 +189,7 @@ export async function GET(request: Request) {
       jenis: "reminder_deadline",
       ref_type: item.jenisItem === "tugas" ? "task" : "subtask",
       ref_id: item.id,
+      recipient_committee_member_id: item.assigneeId,
     });
 
     sent++;

@@ -30,6 +30,40 @@ export function reminderDeadlineEmail(params: {
   };
 }
 
+export function taskAssignedEmail(params: {
+  judul: string;
+  jenisItem: "tugas" | "subtugas";
+  deadline: string | null;
+  instanceLabel: string;
+}): EmailContent {
+  const { judul, jenisItem, deadline, instanceLabel } = params;
+  return {
+    subject: `Tugas baru untuk Anda: ${judul}`,
+    html: wrap(
+      "Ada Tugas Baru untuk Anda",
+      `<p>Anda baru saja di-assign ke ${jenisItem} berikut di <strong>${instanceLabel}</strong>:</p>
+       <p style="font-size: 16px;"><strong>${judul}</strong></p>
+       ${deadline ? `<p>Deadline: <strong>${formatTanggal(deadline)}</strong></p>` : ""}`,
+    ),
+  };
+}
+
+export function taskUnassignedEmail(params: {
+  judul: string;
+  jenisItem: "tugas" | "subtugas";
+  instanceLabel: string;
+}): EmailContent {
+  const { judul, jenisItem, instanceLabel } = params;
+  return {
+    subject: `Tugas dialihkan dari Anda: ${judul}`,
+    html: wrap(
+      "Tugas Dialihkan",
+      `<p>${jenisItem === "tugas" ? "Tugas" : "Subtugas"} berikut di <strong>${instanceLabel}</strong> sudah TIDAK lagi jadi tanggung jawab Anda (dialihkan ke orang lain, atau dilepas dari siapapun):</p>
+       <p style="font-size: 16px;"><strong>${judul}</strong></p>`,
+    ),
+  };
+}
+
 export function budgetLengkapEmail(instanceLabel: string): EmailContent {
   return {
     subject: `Budget submission lengkap: ${instanceLabel}`,

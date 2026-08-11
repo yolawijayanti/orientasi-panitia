@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/logout-button";
 import { InstancePicker } from "@/components/dashboard/instance-picker";
 import { InstanceOverviewCard } from "@/components/dashboard/instance-overview-card";
-import { NotificationFeed } from "@/components/notifications/notification-feed";
 import { loadInstanceGroups, loadInstanceOverview } from "@/lib/dashboard/leader-overview";
-import { loadLeaderNotifications } from "@/lib/notifications/leader-feed";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function LeaderDashboardPage({
@@ -20,7 +18,6 @@ export default async function LeaderDashboardPage({
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   const groups = await loadInstanceGroups(supabase);
-  const notifications = await loadLeaderNotifications(supabase);
 
   const allInstances = groups.flatMap((group) => group.instances);
   const selectedInstances = allInstances.filter((opt) => selectedIds.includes(opt.id));
@@ -45,8 +42,6 @@ export default async function LeaderDashboardPage({
         Selamat datang, Leader! Klik <strong>Kelola Kepanitiaan</strong> untuk melihat detil per
         event atau pilih event per site yang hendak kamu pantau di bawah ini.
       </p>
-
-      <NotificationFeed notifications={notifications} />
 
       <InstancePicker groups={groups} selectedIds={selectedIds} />
 
